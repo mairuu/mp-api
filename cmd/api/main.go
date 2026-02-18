@@ -1,8 +1,6 @@
 package main
 
 import (
-	"time"
-
 	"github.com/gin-gonic/gin"
 	buckethandler "github.com/mairuu/mp-api/internal/features/bucket/handler"
 	bucket "github.com/mairuu/mp-api/internal/features/bucket/model"
@@ -89,7 +87,7 @@ func main() {
 	router.RegisterRoutes()
 
 	// start background services
-	bucketService.StartCleanup(1*time.Hour, 24*time.Hour)
+	bucketService.StartCleanup(cfg.Cleanup.Interval, cfg.Cleanup.TTL)
 
 	// todo: graceful shutdown
 	log.Info("starting server", "addr", cfg.HTTP.Addr)

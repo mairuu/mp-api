@@ -8,6 +8,7 @@ type Config struct {
 	HTTP    HTTPConfig
 	JWT     JWTConfig
 	Storage StorageConfig
+	Cleanup CleanupConfig
 }
 
 type AppConfig struct {
@@ -33,4 +34,9 @@ type StorageConfig struct {
 
 	// LocalStorage
 	BasePath string
+}
+
+type CleanupConfig struct {
+	Interval time.Duration
+	TTL      time.Duration
 }

@@ -35,6 +35,11 @@ func Load() (*Config, error) {
 		BasePath:    getEnv("STORAGE_BASE_PATH", "run/upload"),
 	}
 
+	cfg.Cleanup = CleanupConfig{
+		Interval: getEnvDuration("CLEANUP_INTERVAL", 1*time.Hour),
+		TTL:      getEnvDuration("CLEANUP_TTL", 24*time.Hour),
+	}
+
 	return &cfg, nil
 }
 
