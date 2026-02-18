@@ -31,8 +31,13 @@ func Load() (*Config, error) {
 	}
 
 	cfg.Storage = StorageConfig{
-		StorageType: getEnv("STORAGE_TYPE", "local"),
-		BasePath:    getEnv("STORAGE_BASE_PATH", "run/upload"),
+		StorageType:          getEnv("STORAGE_TYPE", "local"),
+		BasePath:             getEnv("STORAGE_BASE_PATH", "run/upload"),
+		MinIOEndpoint:        getEnv("MINIO_ENDPOINT", "localhost:9000"),
+		MinIOAccessKeyID:     getEnv("MINIO_ACCESS_KEY_ID", ""),
+		MinIOSecretAccessKey: getEnv("MINIO_SECRET_ACCESS_KEY", ""),
+		MinIOBucketName:      getEnv("MINIO_BUCKET_NAME", "mp-api"),
+		MinIOUseSSL:          getEnvBool("MINIO_USE_SSL", false),
 	}
 
 	cfg.Cleanup = CleanupConfig{
@@ -61,4 +66,12 @@ func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
 		return defaultValue
 	}
 	return value
+}
+
+func getEnvBool(key string, defaultValue bool) bool {
+	valueStr, exists := os.LookupEnv(key)
+	if !exists {
+		return defaultValue
+	}
+	return valueStr == "true" || valueStr == "1" || valueStr == "yes"
 }

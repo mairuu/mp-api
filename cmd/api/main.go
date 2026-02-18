@@ -38,18 +38,21 @@ func main() {
 		log.Error("failed to connect to database", "error", err)
 		panic(err)
 	}
+	log.Info("connected to database")
 
 	b, err := storage.NewBucket(&cfg.Storage)
 	if err != nil {
 		log.Error("failed to create bucket", "error", err)
 		panic(err)
 	}
+	log.Info("storage backend", "type", cfg.Storage.StorageType)
 
 	enforcer, err := authorization.NewEnforcer()
 	if err != nil {
 		log.Error("failed to initialize authorization enforcer", "error", err)
 		panic(err)
 	}
+	log.Info("authorization enforcer initialized")
 
 	err = enforcer.AddPolicies(
 		bucket.AllPolicies(),

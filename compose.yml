@@ -10,6 +10,25 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+ minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000" # minio api
+      - "9001:9001" # minio console (web ui)
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
 volumes:
   pgdata:
+    driver: local
+  miniodata:
     driver: local

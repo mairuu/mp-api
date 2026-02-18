@@ -17,7 +17,7 @@ type ObjectMetadata struct {
 	Size         int64
 	ContentType  string
 	LastModified time.Time
-	MetaData     map[string]string
+	MetaData     map[string]string // normalized metadata with lowercase keys
 }
 
 type ObjectReader interface {

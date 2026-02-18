@@ -34,6 +34,13 @@ type StorageConfig struct {
 
 	// LocalStorage
 	BasePath string
+
+	// MinIO
+	MinIOEndpoint        string
+	MinIOAccessKeyID     string
+	MinIOSecretAccessKey string
+	MinIOBucketName      string
+	MinIOUseSSL          bool
 }
 
 type CleanupConfig struct {
