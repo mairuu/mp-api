@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mime/multipart"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/mairuu/mp-api/internal/app"
@@ -13,14 +14,17 @@ import (
 )
 
 type Service struct {
-	enforcer *authorization.Enforcer
-	bucket   storage.Bucket
+	enforcer      *authorization.Enforcer
+	bucket        storage.Bucket
+	cleanupTicker *time.Ticker
+	cleanupDone   chan struct{}
 }
 
 func NewService(enforcer *authorization.Enforcer, bucket storage.Bucket) *Service {
 	return &Service{
-		enforcer: enforcer,
-		bucket:   bucket,
+		enforcer:    enforcer,
+		bucket:      bucket,
+		cleanupDone: make(chan struct{}),
 	}
 }
 
@@ -62,7 +66,6 @@ func (s *Service) UploadFiles(ctx context.Context, ur *app.UserRole, files []*mu
 		}
 		f.Close()
 
-		// todo: track these temporary files and delete them after some period of time, e.g. 24 hours
 		acceptedFiles = append(acceptedFiles, AcceptedFile{
 			OriginalFileName: file.Filename,
 			ObjectName:       objectName,
@@ -81,6 +84,51 @@ func (s *Service) GetMetadata(ctx context.Context, objectName string) (*storage.
 
 func (s *Service) Download(ctx context.Context, objectName string) (storage.ObjectReader, error) {
 	return s.bucket.Download(ctx, objectName)
+}
+
+func (s *Service) StartCleanup(interval time.Duration, ttl time.Duration) {
+	if s.cleanupTicker != nil {
+		return // already running
+	}
+	s.cleanupTicker = time.NewTicker(interval)
+
+	go func() {
+		defer s.cleanupTicker.Stop()
+
+		s.cleanupTemporaryFiles(ttl)
+
+		for {
+			select {
+			case <-s.cleanupTicker.C:
+				s.cleanupTemporaryFiles(ttl)
+			case <-s.cleanupDone:
+				return
+			}
+		}
+	}()
+}
+
+func (s *Service) cleanupTemporaryFiles(ttl time.Duration) {
+	ctx := context.Background()
+
+	for objectName := range s.bucket.ListIter(ctx, "_tmp/") {
+		meta, err := s.bucket.GetMetadata(ctx, objectName)
+		if err != nil {
+			continue
+		}
+
+		if time.Since(meta.LastModified) > ttl {
+			if err := s.bucket.Delete(ctx, objectName); err != nil {
+				continue
+			}
+		}
+	}
+}
+
+func (s *Service) StopCleanup() {
+	if s.cleanupDone != nil {
+		close(s.cleanupDone)
+	}
 }
 
 func (s *Service) enforce(ur *app.UserRole, action authorization.Action, target authorization.ScopeResolvable) error {
