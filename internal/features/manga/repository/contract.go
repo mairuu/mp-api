@@ -1,0 +1,45 @@
+package repository
+
+import (
+	"context"
+
+	"github.com/google/uuid"
+	model "github.com/mairuu/mp-api/internal/features/manga/model"
+)
+
+type Repository interface {
+	SaveManga(ctx context.Context, m *model.Manga) error
+	DeleteMangaByID(ctx context.Context, id uuid.UUID) error
+
+	GetMangaByID(ctx context.Context, id uuid.UUID) (*model.Manga, error)
+	CountMangas(ctx context.Context, filter MangaFilter) (int, error)
+	ListMangas(ctx context.Context, filter MangaFilter, paging Pagging, ordering []Ordering) ([]MangaSummary, error)
+}
+
+type MangaFilter struct {
+	IDs    []string // relax the type to string
+	Title  *string
+	Status *string
+	State  *string
+}
+
+type Pagging struct {
+	Limit  int
+	Offset int
+}
+
+type Ordering struct {
+	Field     string
+	Direction OrderingDirection
+}
+
+type OrderingDirection string
+
+const (
+	Asc  OrderingDirection = "ASC"
+	Desc OrderingDirection = "DESC"
+)
+
+func (d OrderingDirection) IsValid() bool {
+	return d == Asc || d == Desc
+}

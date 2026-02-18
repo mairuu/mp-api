@@ -1,0 +1,203 @@
+package repository
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	"github.com/google/uuid"
+	"github.com/mairuu/mp-api/internal/features/manga/model"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+)
+
+type GormRepository struct {
+	db *gorm.DB
+}
+
+func NewGormRepository(db *gorm.DB) *GormRepository {
+	return &GormRepository{db: db}
+}
+
+func (r *GormRepository) SaveManga(ctx context.Context, m *model.Manga) error {
+	if m == nil {
+		return fmt.Errorf("manga is nil")
+	}
+
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		mdb := toMangaDB(m)
+		err := tx.
+			Clauses(clause.OnConflict{
+				Columns: []clause.Column{{Name: "id"}},
+				DoUpdates: clause.AssignmentColumns([]string{
+					"title",
+					"synopsis",
+					"status",
+					"state",
+					"updated_at",
+				}),
+			}).
+			Create(&mdb).Error
+
+		if err != nil {
+			if errors.Is(err, gorm.ErrDuplicatedKey) {
+				return model.ErrMangaAlreadyExists
+			}
+			return fmt.Errorf("upsert manga: %w", err)
+		}
+
+		// sync cover arts; by diffing existing and input cover arts
+		var existingCoverIDs []uuid.UUID
+		if err := tx.
+			Model(&CoverArtDB{}).
+			Where("manga_id = ?", m.ID).
+			Pluck("id", &existingCoverIDs).Error; err != nil {
+			return fmt.Errorf("fetch existing cover art ids: %w", err)
+		}
+
+		missingCoverIDs := make(map[uuid.UUID]bool, len(existingCoverIDs))
+		for _, id := range existingCoverIDs {
+			missingCoverIDs[id] = true
+		}
+
+		var toUpsertCovers []CoverArtDB
+		var toDeleteCoverIDs []uuid.UUID
+
+		for _, c := range m.Covers {
+			cdb := toCoverArtDB(&c, m.ID)
+			toUpsertCovers = append(toUpsertCovers, cdb)
+			delete(missingCoverIDs, c.ID)
+		}
+
+		for id := range missingCoverIDs {
+			toDeleteCoverIDs = append(toDeleteCoverIDs, id)
+		}
+
+		if len(toUpsertCovers) > 0 {
+			if err := tx.
+				Clauses(clause.OnConflict{
+					Columns: []clause.Column{{Name: "id"}},
+					DoUpdates: clause.AssignmentColumns([]string{
+						"volume",
+						"object_name",
+						"description",
+					}),
+				}).
+				Create(&toUpsertCovers).Error; err != nil {
+				return fmt.Errorf("upsert cover arts: %w", err)
+			}
+		}
+
+		if len(toDeleteCoverIDs) > 0 {
+			if err := tx.
+				Where("id IN ?", toDeleteCoverIDs).
+				Delete(&CoverArtDB{}).Error; err != nil {
+				return fmt.Errorf("delete missing cover arts: %w", err)
+			}
+		}
+
+		return nil
+	})
+}
+
+func (r *GormRepository) DeleteMangaByID(ctx context.Context, id uuid.UUID) error {
+	affected, err := gorm.G[MangaDB](r.db).Where("id = ?", id).Delete(ctx)
+	if err != nil {
+		return fmt.Errorf("delete manga: %w", err)
+	}
+	if affected == 0 {
+		return fmt.Errorf("%w; id=%s", model.ErrMangaNotFound, id)
+	}
+	return nil
+}
+
+func (r *GormRepository) GetMangaByID(ctx context.Context, id uuid.UUID) (*model.Manga, error) {
+	mdb, err := gorm.G[MangaDB](r.db).
+		Preload("Covers", func(db gorm.PreloadBuilder) error {
+			db.Order("volume")
+			return nil
+		}).
+		Where("id = ?", id).
+		First(ctx)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, model.ErrMangaNotFound
+		}
+		return nil, fmt.Errorf("get manga by id: %w", err)
+	}
+
+	mm := mdb.toMangaModel()
+	return &mm, nil
+}
+
+func (r *GormRepository) CountMangas(ctx context.Context, filter MangaFilter) (int, error) {
+	q := r.db.WithContext(ctx).
+		Model(&MangaDB{})
+	q = applyMangaFilter(q, filter)
+
+	var count int64
+	if err := q.Count(&count).Error; err != nil {
+		return 0, fmt.Errorf("count mangas: %w", err)
+	}
+	return int(count), nil
+}
+
+func (r *GormRepository) ListMangas(ctx context.Context, filter MangaFilter, pagging Pagging, ordering []Ordering) ([]MangaSummary, error) {
+	q := r.db.WithContext(ctx).
+		Model(&MangaDB{}).
+		Select("id", "title")
+	q = applyMangaFilter(q, filter)
+	q = applyPagging(q, pagging)
+	q = applyOrderings(q, ordering)
+
+	var mangas []MangaSummary
+	if err := q.Scan(&mangas).Error; err != nil {
+		return nil, fmt.Errorf("list mangas: %w", err)
+	}
+
+	if mangas == nil {
+		mangas = []MangaSummary{}
+	}
+
+	return mangas, nil
+}
+
+func applyMangaFilter(q *gorm.DB, filter MangaFilter) *gorm.DB {
+	if len(filter.IDs) > 0 {
+		if len(filter.IDs) == 1 {
+			q = q.Where("id = ?", filter.IDs[0])
+		} else {
+			q = q.Where("id IN ?", filter.IDs)
+		}
+	}
+	if filter.Title != nil {
+		q = q.Where("title ILIKE ?", "%"+*filter.Title+"%")
+	}
+	if filter.Status != nil {
+		q = q.Where("status = ?", *filter.Status)
+	}
+	if filter.State != nil {
+		q = q.Where("state = ?", *filter.State)
+	}
+	return q
+}
+
+func applyPagging(q *gorm.DB, pagging Pagging) *gorm.DB {
+	q = q.Limit(pagging.Limit).Offset(pagging.Offset)
+	return q
+}
+
+func applyOrderings(q *gorm.DB, ordering []Ordering) *gorm.DB {
+	for _, o := range ordering {
+		if o.Field == "" && !o.Direction.IsValid() {
+			continue
+		}
+		q = q.Order(clause.OrderByColumn{
+			Column: clause.Column{Name: o.Field},
+			Desc:   o.Direction == Desc,
+		})
+	}
+
+	return q
+}
