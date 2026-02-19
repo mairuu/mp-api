@@ -11,4 +11,8 @@ var (
 	ErrDuplicateVolume        = errors.New("volume already exists for this manga")
 	ErrCoverNotFound          = errors.New("cover art not found")
 	ErrUnsupportedImageFormat = errors.New("image format not supported")
+	ErrEmptyPages             = errors.New("pages cannot be empty")
+	ErrInvalidPageWidth       = errors.New("page width must be greater than zero")
+	ErrInvalidPageHeight      = errors.New("page height must be greater than zero")
+	ErrEmptyPageObjectName    = errors.New("page object name cannot be empty")
 )
