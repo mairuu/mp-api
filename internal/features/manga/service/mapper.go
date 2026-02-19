@@ -27,7 +27,6 @@ func (mp *mapper) ToMangaDTO(m *model.Manga) MangaDTO {
 		return MangaDTO{}
 	}
 
-	// map cover arts
 	// sort by volume
 	sorted := make([]*model.CoverArt, 0, len(m.Covers))
 	for i := range m.Covers {
