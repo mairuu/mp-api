@@ -40,12 +40,19 @@ func main() {
 	}
 	log.Info("connected to database")
 
-	b, err := storage.NewBucket(&cfg.Storage)
+	publicBucket, err := storage.NewBucket(&cfg.Storage.PublicBucket)
 	if err != nil {
-		log.Error("failed to create bucket", "error", err)
+		log.Error("failed to create public bucket", "error", err)
 		panic(err)
 	}
-	log.Info("storage backend", "type", cfg.Storage.StorageType)
+	log.Info("public storage backend", "type", cfg.Storage.PublicBucket.StorageType)
+
+	temporaryBucket, err := storage.NewBucket(&cfg.Storage.TemporaryBucket)
+	if err != nil {
+		log.Error("failed to create temporary bucket", "error", err)
+		panic(err)
+	}
+	log.Info("temporary storage backend", "type", cfg.Storage.TemporaryBucket.StorageType)
 
 	enforcer, err := authorization.NewEnforcer()
 	if err != nil {
@@ -68,9 +75,9 @@ func main() {
 	userRepo := userrepo.NewGormRepository(db)
 	mangaRepo := mangarepo.NewGormRepository(db)
 
-	bucketService := bucketservice.NewService(enforcer, b)
+	bucketService := bucketservice.NewService(enforcer, temporaryBucket)
 	userService := userservice.NewService(userRepo, tokenService, enforcer)
-	mangaService := mangaservice.NewService(log, mangaRepo, enforcer, b)
+	mangaService := mangaservice.NewService(log, mangaRepo, enforcer, publicBucket, temporaryBucket)
 
 	r := gin.New()
 	r.SetTrustedProxies(nil)

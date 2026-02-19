@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"mime/multipart"
 	"time"
 
@@ -55,7 +54,7 @@ func (s *Service) UploadFiles(ctx context.Context, ur *app.UserRole, files []*mu
 			continue
 		}
 
-		objectName := fmt.Sprintf("_tmp/%s", uuid.New().String())
+		objectName := uuid.New().String() // No prefix needed, bucket is already separated
 		if err := s.bucket.Upload(ctx, objectName, f, opts); err != nil {
 			f.Close()
 			rejectedFiles = append(rejectedFiles, RejectedFile{
@@ -111,7 +110,8 @@ func (s *Service) StartCleanup(interval time.Duration, ttl time.Duration) {
 func (s *Service) cleanupTemporaryFiles(ttl time.Duration) {
 	ctx := context.Background()
 
-	for objectName := range s.bucket.ListIter(ctx, "_tmp/") {
+	// No prefix needed - this bucket contains only temporary files
+	for objectName := range s.bucket.ListIter(ctx, "") {
 		meta, err := s.bucket.GetMetadata(ctx, objectName)
 		if err != nil {
 			continue

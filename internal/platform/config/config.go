@@ -30,12 +30,17 @@ type JWTConfig struct {
 }
 
 type StorageConfig struct {
+	PublicBucket    BucketConfig
+	TemporaryBucket BucketConfig
+}
+
+type BucketConfig struct {
 	StorageType string
 
-	// LocalStorage
+	// localstorage
 	BasePath string
 
-	// MinIO
+	// minio
 	MinIOEndpoint        string
 	MinIOAccessKeyID     string
 	MinIOSecretAccessKey string

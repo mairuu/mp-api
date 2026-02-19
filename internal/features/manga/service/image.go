@@ -42,7 +42,7 @@ func (s *Service) uploadImage(ctx context.Context, objectName string, img image.
 	opts := &storage.UploadOptions{
 		ContentType: "image/webp",
 	}
-	if err := s.bucket.Upload(ctx, objectName, bytes.NewReader(buf.Bytes()), opts); err != nil {
+	if err := s.publicBucket.Upload(ctx, objectName, bytes.NewReader(buf.Bytes()), opts); err != nil {
 		return fmt.Errorf("upload failed: %w", err)
 	}
 

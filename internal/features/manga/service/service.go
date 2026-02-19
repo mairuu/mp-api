@@ -16,20 +16,22 @@ import (
 )
 
 type Service struct {
-	log      *slog.Logger
-	repo     repo.Repository
-	enforcer *authorization.Enforcer
-	bucket   storage.Bucket
-	mapper   mapper
+	log             *slog.Logger
+	repo            repo.Repository
+	enforcer        *authorization.Enforcer
+	publicBucket    storage.Bucket
+	temporaryBucket storage.Bucket
+	mapper          mapper
 }
 
-func NewService(log *slog.Logger, repo repo.Repository, enforcer *authorization.Enforcer, bucket storage.Bucket) *Service {
+func NewService(log *slog.Logger, repo repo.Repository, enforcer *authorization.Enforcer, publicBucket storage.Bucket, temporaryBucket storage.Bucket) *Service {
 	return &Service{
-		log:      log,
-		repo:     repo,
-		enforcer: enforcer,
-		bucket:   bucket,
-		mapper:   mapper{},
+		log:             log,
+		repo:            repo,
+		enforcer:        enforcer,
+		publicBucket:    publicBucket,
+		temporaryBucket: temporaryBucket,
+		mapper:          mapper{},
 	}
 }
 
@@ -152,7 +154,7 @@ func (s *Service) UpdateManga(ctx context.Context, ur *app.UserRole, id uuid.UUI
 			for _, spec := range coverImageSpecs {
 				for _, suffix := range spec.suffixes {
 					objectName := c.ObjectName + suffix
-					if err := s.bucket.Delete(ctx, objectName); err != nil {
+					if err := s.publicBucket.Delete(ctx, objectName); err != nil {
 						s.log.WarnContext(ctx, "failed to delete cover art object", "object_name", objectName, "error", err)
 					}
 				}
@@ -267,7 +269,7 @@ var coverImageSpecs = []struct {
 
 func (s *Service) processNewCoverArt(ctx context.Context, ur *app.UserRole, mangaID uuid.UUID, statingObjectName string) (string, error) {
 	// check if user owns the staging object
-	meta, err := s.bucket.GetMetadata(ctx, statingObjectName)
+	meta, err := s.temporaryBucket.GetMetadata(ctx, statingObjectName)
 	if err != nil {
 		if errors.Is(err, storage.ErrObjectNotFound) {
 			return "", fmt.Errorf("%w: object_name = %s", model.ErrCoverNotFound, statingObjectName)
@@ -279,7 +281,7 @@ func (s *Service) processNewCoverArt(ctx context.Context, ur *app.UserRole, mang
 		return "", fmt.Errorf("%w: object_name = %s", model.ErrCoverNotFound, statingObjectName)
 	}
 
-	f, err := s.bucket.Download(ctx, statingObjectName)
+	f, err := s.temporaryBucket.Download(ctx, statingObjectName)
 	if err != nil {
 		// practically redundant check since we already got the metadata
 		if errors.Is(err, storage.ErrObjectNotFound) {
@@ -306,8 +308,8 @@ func (s *Service) processNewCoverArt(ctx context.Context, ur *app.UserRole, mang
 		}
 	}
 
-	// delete staging object
-	if err := s.bucket.Delete(ctx, statingObjectName); err != nil {
+	// delete staging object from temporary bucket
+	if err := s.temporaryBucket.Delete(ctx, statingObjectName); err != nil {
 		s.log.WarnContext(ctx, "failed to delete staging object after processing new cover art", "object_name", statingObjectName, "error", err)
 	}
 
@@ -329,9 +331,9 @@ func (s *Service) DeleteManga(ctx context.Context, ur *app.UserRole, id uuid.UUI
 		return err
 	}
 
-	// release resources
-	for objectName := range s.bucket.ListIter(ctx, mangaResourcePrefix(m.ID)) {
-		if err = s.bucket.Delete(ctx, objectName); err != nil {
+	// release resources from public bucket
+	for objectName := range s.publicBucket.ListIter(ctx, mangaResourcePrefix(m.ID)) {
+		if err = s.publicBucket.Delete(ctx, objectName); err != nil {
 			s.log.WarnContext(ctx, "failed to delete cover art object during manga deletion", "object_name", objectName, "error", err)
 		}
 	}

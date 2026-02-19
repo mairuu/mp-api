@@ -24,8 +24,13 @@ func (h *BucketHandler) RegisterRoutes(router gin.IRouter) {
 	uploads := router.Group("/storage")
 	{
 		uploads.POST("/", h.Upload)
-		uploads.GET("/*object_name", h.Get)
-		uploads.HEAD("/*object_name", h.Head)
+
+		// todo: make this configurable
+		enableServing := false
+		if enableServing {
+			uploads.GET("/*object_name", h.Get)
+			uploads.HEAD("/*object_name", h.Head)
+		}
 	}
 }
 

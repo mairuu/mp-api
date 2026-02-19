@@ -31,13 +31,24 @@ func Load() (*Config, error) {
 	}
 
 	cfg.Storage = StorageConfig{
-		StorageType:          getEnv("STORAGE_TYPE", "local"),
-		BasePath:             getEnv("STORAGE_BASE_PATH", "run/upload"),
-		MinIOEndpoint:        getEnv("MINIO_ENDPOINT", "localhost:9000"),
-		MinIOAccessKeyID:     getEnv("MINIO_ACCESS_KEY_ID", ""),
-		MinIOSecretAccessKey: getEnv("MINIO_SECRET_ACCESS_KEY", ""),
-		MinIOBucketName:      getEnv("MINIO_BUCKET_NAME", "mp-api"),
-		MinIOUseSSL:          getEnvBool("MINIO_USE_SSL", false),
+		PublicBucket: BucketConfig{
+			StorageType:          getEnv("PUBLIC_STORAGE_TYPE", "local"),
+			BasePath:             getEnv("PUBLIC_STORAGE_BASE_PATH", "run/upload/public"),
+			MinIOEndpoint:        getEnv("PUBLIC_MINIO_ENDPOINT", "localhost:9000"),
+			MinIOAccessKeyID:     getEnv("PUBLIC_MINIO_ACCESS_KEY_ID", ""),
+			MinIOSecretAccessKey: getEnv("PUBLIC_MINIO_SECRET_ACCESS_KEY", ""),
+			MinIOBucketName:      getEnv("PUBLIC_MINIO_BUCKET_NAME", "mp-api-public"),
+			MinIOUseSSL:          getEnvBool("PUBLIC_MINIO_USE_SSL", false),
+		},
+		TemporaryBucket: BucketConfig{
+			StorageType:          getEnv("TEMPORARY_STORAGE_TYPE", "local"),
+			BasePath:             getEnv("TEMPORARY_STORAGE_BASE_PATH", "run/upload/temp"),
+			MinIOEndpoint:        getEnv("TEMPORARY_MINIO_ENDPOINT", "localhost:9000"),
+			MinIOAccessKeyID:     getEnv("TEMPORARY_MINIO_ACCESS_KEY_ID", ""),
+			MinIOSecretAccessKey: getEnv("TEMPORARY_MINIO_SECRET_ACCESS_KEY", ""),
+			MinIOBucketName:      getEnv("TEMPORARY_MINIO_BUCKET_NAME", "mp-api-temp"),
+			MinIOUseSSL:          getEnvBool("TEMPORARY_MINIO_USE_SSL", false),
+		},
 	}
 
 	cfg.Cleanup = CleanupConfig{
