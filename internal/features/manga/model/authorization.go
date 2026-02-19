@@ -11,11 +11,12 @@ const (
 )
 
 const (
-	ActionCreate a.Action = "create"
-	ActionRead   a.Action = "read"
-	ActionList   a.Action = "list"
-	ActionUpdate a.Action = "update"
-	ActionDelete a.Action = "delete"
+	ActionCreate  a.Action = "create"
+	ActionRead    a.Action = "read"
+	ActionList    a.Action = "list"
+	ActionUpdate  a.Action = "update"
+	ActionDelete  a.Action = "delete"
+	ActionPublish a.Action = "publish"
 )
 
 const (

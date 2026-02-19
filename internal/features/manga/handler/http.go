@@ -30,6 +30,7 @@ func (h *Handler) RegisterRoutes(router gin.IRouter) {
 		mangas.PUT(":manga_id", h.UpdateManga)
 		mangas.DELETE(":manga_id", h.DeleteManga)
 
+		mangas.GET(":manga_id/publish", h.PublishManga)
 	}
 }
 
@@ -126,4 +127,22 @@ func (h *Handler) DeleteManga(ctx *gin.Context) {
 	}
 
 	httptransport.SuccessResponse(ctx, http.StatusOK, nil)
+}
+
+func (h *Handler) PublishManga(ctx *gin.Context) {
+	ur := h.userRoleFromContext(ctx)
+
+	mangaID, err := h.mangaIDFromPath(ctx)
+	if err != nil {
+		h.handleError(ctx, err)
+		return
+	}
+
+	dto, err := h.service.PublishManga(ctx.Request.Context(), ur, mangaID)
+	if err != nil {
+		h.handleError(ctx, err)
+		return
+	}
+
+	httptransport.SuccessResponse(ctx, http.StatusOK, dto)
 }
