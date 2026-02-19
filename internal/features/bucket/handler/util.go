@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -24,11 +23,6 @@ func userRoleFromContext(ctx *gin.Context) *app.UserRole {
 		return (&app.UserRole{}).OrGuest()
 	}
 	return (&app.UserRole{ID: userID, Role: authorization.Role(role)}).OrGuest()
-}
-
-func shouldServeObject(objectName string) bool {
-	// we dont serve files under _ prefix, these are reserved for internal use (e.g. temporary files)
-	return !strings.HasPrefix(objectName, "_")
 }
 
 func toHTTPStatusCode(err error) int {

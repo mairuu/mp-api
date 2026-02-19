@@ -61,10 +61,6 @@ func (h *BucketHandler) Upload(ctx *gin.Context) {
 
 func (h *BucketHandler) Get(ctx *gin.Context) {
 	objectName := strings.TrimPrefix(ctx.Param("object_name"), "/")
-	if !shouldServeObject(objectName) {
-		ctx.Status(http.StatusNotFound)
-		return
-	}
 
 	meta, err := h.service.GetMetadata(ctx.Request.Context(), objectName)
 	if err != nil {
@@ -96,10 +92,6 @@ func (h *BucketHandler) Get(ctx *gin.Context) {
 
 func (h *BucketHandler) Head(ctx *gin.Context) {
 	objectName := strings.TrimPrefix(ctx.Param("object_name"), "/")
-	if !shouldServeObject(objectName) {
-		ctx.Status(http.StatusNotFound)
-		return
-	}
 
 	meta, err := h.service.GetMetadata(ctx.Request.Context(), objectName)
 	if err != nil {
