@@ -1,6 +1,9 @@
 package service
 
 import (
+	"fmt"
+	"slices"
+
 	"github.com/mairuu/mp-api/internal/features/manga/model"
 	repo "github.com/mairuu/mp-api/internal/features/manga/repository"
 )
@@ -24,12 +27,32 @@ func (mp *mapper) ToMangaDTO(m *model.Manga) MangaDTO {
 		return MangaDTO{}
 	}
 
-	covers := make([]CoverArtDTO, 0, len(m.Covers))
+	// map cover arts
+	// sort by volume
+	sorted := make([]*model.CoverArt, 0, len(m.Covers))
 	for i := range m.Covers {
+		sorted = append(sorted, &m.Covers[i])
+	}
+
+	slices.SortFunc(sorted, func(a, b *model.CoverArt) int {
+		// pad zeros
+		aFormat := fmt.Sprintf("%010s", a.Volume)
+		bFormat := fmt.Sprintf("%010s", b.Volume)
+
+		if aFormat < bFormat {
+			return -1
+		} else if aFormat > bFormat {
+			return 1
+		}
+		return 0
+	})
+
+	covers := make([]CoverArtDTO, 0, len(m.Covers))
+	for i := range sorted {
 		covers = append(covers, CoverArtDTO{
-			Volume:      m.Covers[i].Volume,
-			Description: m.Covers[i].Description,
-			ObjectName:  m.Covers[i].ObjectName,
+			Volume:      sorted[i].Volume,
+			Description: sorted[i].Description,
+			ObjectName:  sorted[i].ObjectName,
 		})
 	}
 
