@@ -11,6 +11,7 @@ import (
 	"github.com/mairuu/mp-api/internal/features/manga/model"
 	repo "github.com/mairuu/mp-api/internal/features/manga/repository"
 	"github.com/mairuu/mp-api/internal/platform/authorization"
+	"github.com/mairuu/mp-api/internal/platform/collections"
 	"github.com/mairuu/mp-api/internal/platform/storage"
 	"github.com/nfnt/resize"
 )
@@ -111,7 +112,7 @@ func (s *Service) UpdateManga(ctx context.Context, ur *app.UserRole, id uuid.UUI
 		return nil, err
 	}
 
-	r, err := s.processCoverArtChanges(m, req.CoverArts)
+	r, err := s.processCoverArtChanges(m.Covers, req.CoverArts)
 	if err != nil {
 		return nil, err
 	}
@@ -120,15 +121,15 @@ func (s *Service) UpdateManga(ctx context.Context, ur *app.UserRole, id uuid.UUI
 		Title(req.Title).
 		Synopsis(req.Synopsis).
 		Status((*model.MangaStatus)(req.Status)).
-		CoverArts(r.merged()). // for validation of cover arts before processing new ones
+		CoverArts(r.Merged()). // for validation of cover arts before processing new ones
 		Apply()
 	if err != nil {
 		return nil, err
 	}
 
 	// stage new cover arts
-	if len(r.added) > 0 {
-		for _, c := range r.added {
+	if len(r.Added) > 0 {
+		for _, c := range r.Added {
 			permanentObjectName, err := s.processNewCoverArt(ctx, ur, m.ID, c.ObjectName)
 			if err != nil {
 				return nil, err
@@ -138,7 +139,7 @@ func (s *Service) UpdateManga(ctx context.Context, ur *app.UserRole, id uuid.UUI
 	}
 
 	err = m.Updater().
-		CoverArts(r.merged()).
+		CoverArts(r.Merged()).
 		Apply()
 	if err != nil {
 		return nil, err
@@ -149,8 +150,8 @@ func (s *Service) UpdateManga(ctx context.Context, ur *app.UserRole, id uuid.UUI
 	}
 
 	// delete removed cover arts from storage
-	if len(r.deleted) > 0 {
-		for _, c := range r.deleted {
+	if len(r.Deleted) > 0 {
+		for _, c := range r.Deleted {
 			for _, spec := range coverImageSpecs {
 				for _, suffix := range spec.suffixes {
 					objectName := c.ObjectName + suffix
@@ -166,95 +167,84 @@ func (s *Service) UpdateManga(ctx context.Context, ur *app.UserRole, id uuid.UUI
 	return &dto, nil
 }
 
-type processCoverArtChangesResult struct {
-	m       *model.Manga
-	added   []*model.CoverArt
-	updated []*model.CoverArt
-	deleted []*model.CoverArt
-}
+type processCoverArtChangesResult = collections.DiffResult[model.CoverArt]
 
-func (r *processCoverArtChangesResult) merged() []model.CoverArt {
-	if r.m != nil {
-		return r.m.Covers
-	}
-
-	all := make([]model.CoverArt, 0, len(r.added)+len(r.updated))
-	for _, c := range r.added {
-		all = append(all, *c)
-	}
-	for _, c := range r.updated {
-		all = append(all, *c)
-	}
-	return all
-}
-
-// processCoverArtChanges compares the existing cover arts of a manga with the
-// provided DTOs and determines which covers need to be added, updated, or deleted.
-func (s *Service) processCoverArtChanges(m *model.Manga, dtos *[]UpdateCoverArtDTO) (*processCoverArtChangesResult, error) {
+// processCoverArtChanges processes cover art changes based on the provided DTOs and existing cover arts, returning what needs to be added, updated, or deleted
+// handled scenarios:
+// - add new cover
+// - update existing cover (same volume, same object)
+// - replace cover (same volume, different object)
+// - rename volume (different volume, same object)
+// - delete cover
+func (s *Service) processCoverArtChanges(existing []model.CoverArt, dtos *[]UpdateCoverArtDTO) (*processCoverArtChangesResult, error) {
 	if dtos == nil {
-		return &processCoverArtChangesResult{m: m}, nil
+		// return empty diff result with existing items as "updated"
+		result := &collections.DiffResult[model.CoverArt]{
+			Added:   nil,
+			Updated: make([]*model.CoverArt, len(existing)),
+			Deleted: nil,
+		}
+		for i := range existing {
+			result.Updated[i] = &existing[i]
+		}
+		return result, nil
 	}
 
-	var added []*model.CoverArt
-	var updated []*model.CoverArt
-	var deleted []*model.CoverArt
-
-	existingCovers := make(map[uuid.UUID]*model.CoverArt)
-	for i := range m.Covers {
-		existingCovers[m.Covers[i].ID] = &m.Covers[i]
+	// convert
+	newCovers := make([]model.CoverArt, 0, len(*dtos))
+	for _, dto := range *dtos {
+		cv, err := model.NewCoverArt(dto.Volume, dto.ObjectName, dto.Description)
+		if err != nil {
+			return nil, err
+		}
+		newCovers = append(newCovers, *cv)
 	}
 
-	for _, coverDTO := range *dtos {
-		// case 1: update existing cover
-		if coverDTO.ID != nil {
-			if existing, ok := existingCovers[*coverDTO.ID]; ok {
-				delete(existingCovers, *coverDTO.ID)
-
-				u := *existing
-				u.Volume = coverDTO.Volume
-				u.Description = coverDTO.Description
-
-				// handle object name change
-				if coverDTO.ObjectName != nil {
-					// the goal is to replace the existing cover art with the new one and keep the same ID
-					u.ObjectName = *coverDTO.ObjectName
-					added = append(added, &u)
-					// create dummy cover art to be deleted after the new one is processed and saved
-					deleted = append(deleted, &model.CoverArt{ObjectName: existing.ObjectName})
-				} else {
-					updated = append(updated, &u)
+	differ := collections.IdentifiableDiffer[string, model.CoverArt]{
+		GetKey: func(c *model.CoverArt) string {
+			return c.Volume
+		},
+		AddItem: func(existings []model.CoverArt, adding *model.CoverArt) (added *model.CoverArt, toUpdate *model.CoverArt, toDelete *model.CoverArt, err error) {
+			// check if this object already exists with a different volume (volume rename scenario)
+			for i := range existings {
+				if existings[i].ObjectName == adding.ObjectName {
+					// same object, different volume; treat as update
+					return nil, adding, nil, nil
 				}
-			} else {
-				// id was not found in existing covers
-				return nil, fmt.Errorf("%w: id = %s", model.ErrCoverNotFound, *coverDTO.ID)
+			}
+			// truly new cover
+			return adding, nil, nil, nil
+		},
+		UpdateItem: func(existing *model.CoverArt, updating *model.CoverArt) (*model.CoverArt, *model.CoverArt, *model.CoverArt, error) {
+			// if object name changed, treat as replacement (delete old + add new)
+			if existing.ObjectName != updating.ObjectName {
+				// return: updated=nil, toAdd=updating, toDelete=old (for cleanup)
+				return nil, updating, &model.CoverArt{ObjectName: existing.ObjectName}, nil
 			}
 
-			continue
-		}
-
-		// case 2: add new cover from staging
-		if coverDTO.ObjectName != nil {
-			cv, err := model.NewCoverArt(coverDTO.Volume, *coverDTO.ObjectName, coverDTO.Description)
-			if err != nil {
-				return nil, err
+			// otherwise, it's a simple update (description might have changed)
+			updated := *existing
+			updated.Description = updating.Description
+			return &updated, nil, nil, nil
+		},
+		DeleteItem: func(new []model.CoverArt, deleting *model.CoverArt) (deleted *model.CoverArt, toAdd *model.CoverArt, toUpdate *model.CoverArt, err error) {
+			for i := range new {
+				if new[i].ObjectName == deleting.ObjectName {
+					// same object, different volume; skip deletion (additem will handle it)
+					return nil, nil, nil, nil
+				}
 			}
-			added = append(added, cv)
-
-			continue
-		}
-
-		return nil, fmt.Errorf("%w: %s", model.ErrCoverNotFound, "cover DTO must have either ID or ObjectName")
+			// truly deleted cover
+			return deleting, nil, nil, nil
+		},
 	}
 
-	for i := range existingCovers {
-		deleted = append(deleted, existingCovers[i])
+	result, err := differ.Diff(existing, newCovers)
+	if err != nil {
+		return nil, err
 	}
 
-	return &processCoverArtChangesResult{
-		added:   added,
-		updated: updated,
-		deleted: deleted,
-	}, nil
+	return result, nil
 }
 
 var coverImageSpecs = []struct {

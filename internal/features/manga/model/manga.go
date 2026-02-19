@@ -22,7 +22,6 @@ type Manga struct {
 }
 
 type CoverArt struct {
-	ID          uuid.UUID
 	Volume      string // unique per manga
 	ObjectName  string
 	Description string
@@ -75,7 +74,6 @@ func NewCoverArt(volume, objectName, description string) (*CoverArt, error) {
 		return nil, err
 	}
 	return &CoverArt{
-		ID:          uuid.New(),
 		Volume:      volume,
 		ObjectName:  objectName,
 		Description: description,

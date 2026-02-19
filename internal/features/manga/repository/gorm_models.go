@@ -24,6 +24,11 @@ func (m *MangaDB) TableName() string {
 }
 
 func toMangaDB(m *model.Manga) MangaDB {
+	covers := make([]CoverArtDB, 0, len(m.Covers))
+	for _, c := range m.Covers {
+		covers = append(covers, toCoverArtDB(&c, m.ID))
+	}
+
 	return MangaDB{
 		ID:        m.ID,
 		OwnerID:   m.OwnerID,
@@ -31,6 +36,7 @@ func toMangaDB(m *model.Manga) MangaDB {
 		Synopsis:  m.Synopsis,
 		Status:    string(m.Status),
 		State:     string(m.State),
+		Covers:    covers,
 		CreatedAt: m.CreatedAt,
 		UpdatedAt: m.UpdatedAt,
 	}
@@ -56,9 +62,8 @@ func (mdb *MangaDB) toMangaModel() model.Manga {
 }
 
 type CoverArtDB struct {
-	ID          uuid.UUID `gorm:"type:uuid;primaryKey"`
-	MangaID     uuid.UUID `gorm:"type:uuid;not null;index:idx_manga_id_volume"`
-	Volume      string    `gorm:"type:varchar(10);not null;index:idx_manga_id_volume"`
+	MangaID     uuid.UUID `gorm:"type:uuid;primaryKey"`
+	Volume      string    `gorm:"type:varchar(10);not null;primaryKey"`
 	ObjectName  string    `gorm:"type:varchar(255);not null"`
 	Description string    `gorm:"type:text"`
 }
@@ -69,7 +74,6 @@ func (c *CoverArtDB) TableName() string {
 
 func toCoverArtDB(cover *model.CoverArt, mangaID uuid.UUID) CoverArtDB {
 	return CoverArtDB{
-		ID:          cover.ID,
 		MangaID:     mangaID,
 		Volume:      cover.Volume,
 		ObjectName:  cover.ObjectName,
@@ -79,7 +83,6 @@ func toCoverArtDB(cover *model.CoverArt, mangaID uuid.UUID) CoverArtDB {
 
 func (cdb *CoverArtDB) toCoverArtModel() model.CoverArt {
 	return model.CoverArt{
-		ID:          cdb.ID,
 		Volume:      cdb.Volume,
 		ObjectName:  cdb.ObjectName,
 		Description: cdb.Description,

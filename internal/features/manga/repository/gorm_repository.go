@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mairuu/mp-api/internal/features/manga/model"
+	"github.com/mairuu/mp-api/internal/platform/collections"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -46,53 +47,49 @@ func (r *GormRepository) SaveManga(ctx context.Context, m *model.Manga) error {
 			return fmt.Errorf("upsert manga: %w", err)
 		}
 
-		// sync cover arts; by diffing existing and input cover arts
-		var existingCoverIDs []uuid.UUID
-		if err := tx.
+		// sync cover arts
+		// could've been done by delete and re-insert; but we diff just for fun
+
+		var existingCovers []CoverArtDB
+		err = tx.
 			Model(&CoverArtDB{}).
 			Where("manga_id = ?", m.ID).
-			Pluck("id", &existingCoverIDs).Error; err != nil {
-			return fmt.Errorf("fetch existing cover art ids: %w", err)
+			Find(&existingCovers).Error
+		if err != nil {
+			return fmt.Errorf("fetch existing cover arts: %w", err)
 		}
 
-		missingCoverIDs := make(map[uuid.UUID]bool, len(existingCoverIDs))
-		for _, id := range existingCoverIDs {
-			missingCoverIDs[id] = true
+		differ := collections.IdentifiableDiffer[string, CoverArtDB]{
+			GetKey: func(ca *CoverArtDB) string {
+				return ca.Volume
+			},
 		}
 
-		var toUpsertCovers []CoverArtDB
-		var toDeleteCoverIDs []uuid.UUID
-
-		for _, c := range m.Covers {
-			cdb := toCoverArtDB(&c, m.ID)
-			toUpsertCovers = append(toUpsertCovers, cdb)
-			delete(missingCoverIDs, c.ID)
+		result, err := differ.Diff(existingCovers, mdb.Covers)
+		if err != nil {
+			return fmt.Errorf("diff cover arts: %w", err)
 		}
 
-		for id := range missingCoverIDs {
-			toDeleteCoverIDs = append(toDeleteCoverIDs, id)
-		}
-
-		if len(toUpsertCovers) > 0 {
-			if err := tx.
+		toUpserts := result.Merged()
+		if len(toUpserts) > 0 {
+			err = tx.
 				Clauses(clause.OnConflict{
-					Columns: []clause.Column{{Name: "id"}},
+					Columns: []clause.Column{{Name: "manga_id"}, {Name: "volume"}},
 					DoUpdates: clause.AssignmentColumns([]string{
-						"volume",
 						"object_name",
 						"description",
 					}),
 				}).
-				Create(&toUpsertCovers).Error; err != nil {
+				Create(&toUpserts).Error
+			if err != nil {
 				return fmt.Errorf("upsert cover arts: %w", err)
 			}
 		}
 
-		if len(toDeleteCoverIDs) > 0 {
-			if err := tx.
-				Where("id IN ?", toDeleteCoverIDs).
-				Delete(&CoverArtDB{}).Error; err != nil {
-				return fmt.Errorf("delete missing cover arts: %w", err)
+		if len(result.Deleted) > 0 {
+			err := tx.Delete(result.Deleted).Error
+			if err != nil {
+				return fmt.Errorf("delete removed cover arts: %w", err)
 			}
 		}
 

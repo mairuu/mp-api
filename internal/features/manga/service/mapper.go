@@ -27,7 +27,6 @@ func (mp *mapper) ToMangaDTO(m *model.Manga) MangaDTO {
 	covers := make([]CoverArtDTO, 0, len(m.Covers))
 	for i := range m.Covers {
 		covers = append(covers, CoverArtDTO{
-			ID:          m.Covers[i].ID.String(),
 			Volume:      m.Covers[i].Volume,
 			Description: m.Covers[i].Description,
 			ObjectName:  m.Covers[i].ObjectName,

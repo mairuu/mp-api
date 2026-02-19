@@ -1,7 +1,5 @@
 package service
 
-import "github.com/google/uuid"
-
 type CreateMangaDTO struct {
 	Title    string `json:"title" binding:"required"`
 	Synopsis string `json:"synopsis" binding:""`
@@ -15,20 +13,9 @@ type UpdateMangaDTO struct {
 	CoverArts *[]UpdateCoverArtDTO `json:"covers"`
 }
 
-// - to add cover art object_name is required,
-// object_name is a handle to staging object in storage
-//
-// - to update cover art the id is required, if object_name is provided,
-// it will be treated as new cover art and staged, otherwise the existing cover art will be kept
-//
-// - to delete cover art simply omit the cover art from the update DTO,
-// the service will determine which cover arts to delete based on the existing cover arts of the manga
 type UpdateCoverArtDTO struct {
-	ID *uuid.UUID `json:"id"`
-
-	ObjectName *string `json:"object_name"`
-
-	Volume      string `json:"volume"`
+	ObjectName  string `json:"object_name" binding:"required"`
+	Volume      string `json:"volume" binding:"required"`
 	Description string `json:"description"`
 }
 
@@ -42,7 +29,6 @@ type MangaDTO struct {
 }
 
 type CoverArtDTO struct {
-	ID          string `json:"id"`
 	Volume      string `json:"volume"`
 	Description string `json:"description"`
 	ObjectName  string `json:"object_name"`
