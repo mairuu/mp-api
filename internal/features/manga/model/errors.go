@@ -1,20 +1,20 @@
 package model
 
-import "errors"
+import "github.com/mairuu/mp-api/internal/platform/errors"
 
 var (
-	ErrMangaNotFound          = errors.New("manga not found")
-	ErrMangaAlreadyExists     = errors.New("manga already exists")
-	ErrInvalidTitle           = errors.New("invalid title")
-	ErrInvalidStatus          = errors.New("invalid status")
-	ErrInvalidVolume          = errors.New("invalid volume")
-	ErrChapterAlreadyExists   = errors.New("chapter already exists")
-	ErrInvalidChapterNumber   = errors.New("invalid chapter number")
-	ErrVolumeAlreadyExists    = errors.New("volume already exists")
-	ErrCoverNotFound          = errors.New("cover art not found")
-	ErrUnsupportedImageFormat = errors.New("image format not supported")
-	ErrEmptyPages             = errors.New("empty pages")
-	ErrInvalidPageWidth       = errors.New("invalid page width")
-	ErrInvalidPageHeight      = errors.New("invalid page height")
-	ErrEmptyPageObjectName    = errors.New("empty page object name")
+	ErrMangaNotFound          = errors.New("manga_not_found")
+	ErrMangaAlreadyExists     = errors.New("manga_already_exists")
+	ErrInvalidTitle           = errors.New("invalid_title")
+	ErrInvalidStatus          = errors.New("invalid_status")
+	ErrInvalidVolume          = errors.New("invalid_volume")
+	ErrChapterAlreadyExists   = errors.New("chapter_already_exists")
+	ErrInvalidChapterNumber   = errors.New("invalid_chapter_number")
+	ErrVolumeAlreadyExists    = errors.New("volume_already_exists")
+	ErrCoverNotFound          = errors.New("cover_not_found")
+	ErrUnsupportedImageFormat = errors.New("unsupported_image_format")
+	ErrEmptyPages             = errors.New("empty_pages")
+	ErrInvalidPageWidth       = errors.New("invalid_page_width")
+	ErrInvalidPageHeight      = errors.New("invalid_page_height")
+	ErrEmptyPageObjectName    = errors.New("empty_page_object_name")
 )

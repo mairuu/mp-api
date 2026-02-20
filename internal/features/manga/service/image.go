@@ -25,7 +25,7 @@ func (s *Service) decodeImage(f io.Reader) (image.Image, error) {
 	img, _, err := image.Decode(f)
 	if err != nil {
 		if errors.Is(err, image.ErrFormat) {
-			return nil, fmt.Errorf("%w; please use WebP, JPEG, PNG or GIF", model.ErrUnsupportedImageFormat)
+			return nil, model.ErrUnsupportedImageFormat.WithMessage("please use WebP, JPEG, PNG or GIF")
 		}
 		return nil, err
 	}

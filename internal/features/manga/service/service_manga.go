@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/mairuu/mp-api/internal/app"
@@ -241,20 +240,20 @@ func (s *Service) processNewCoverArt(ctx context.Context, ur *app.UserRole, mang
 	meta, err := s.temporaryBucket.GetMetadata(ctx, statingObjectName)
 	if err != nil {
 		if errors.Is(err, storage.ErrObjectNotFound) {
-			return "", fmt.Errorf("%w; object_name=%s", model.ErrCoverNotFound, statingObjectName)
+			return "", model.ErrCoverNotFound.WithArg("object_name", statingObjectName)
 		}
 		return "", err
 	}
 
 	if meta.MetaData["user_id"] != ur.ID.String() {
-		return "", fmt.Errorf("%w; object_name=%s", model.ErrCoverNotFound, statingObjectName)
+		return "", model.ErrCoverNotFound.WithArg("object_name", statingObjectName)
 	}
 
 	f, err := s.temporaryBucket.Download(ctx, statingObjectName)
 	if err != nil {
 		// practically redundant check since we already got the metadata
 		if errors.Is(err, storage.ErrObjectNotFound) {
-			return "", fmt.Errorf("%w; object_name=%s", model.ErrCoverNotFound, statingObjectName)
+			return "", model.ErrCoverNotFound.WithArg("object_name", statingObjectName)
 		}
 		return "", err
 	}
