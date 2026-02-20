@@ -53,7 +53,7 @@ func Load() (*Config, error) {
 
 	cfg.Cleanup = CleanupConfig{
 		Interval: getEnvDuration("CLEANUP_INTERVAL", 1*time.Hour),
-		TTL:      getEnvDuration("CLEANUP_TEMPORARY_FILE_TTL", 24*time.Hour),
+		TTL:      getEnvDuration("TEMPORARY_FILE_TTL", 24*time.Hour),
 	}
 
 	return &cfg, nil
