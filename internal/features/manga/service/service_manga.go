@@ -38,6 +38,10 @@ func (s *Service) ListMangas(ctx context.Context, ur *app.UserRole, q *MangaList
 		return nil, err
 	}
 
+	if len(q.Orders) == 0 {
+		q.Orders = []string{"created_at,desc"}
+	}
+
 	filter := q.ToMangaFilter()
 	filter.State = ptr(string(model.MangaStatePublish)) // only list active mangas
 	pagging := q.ToPaging()

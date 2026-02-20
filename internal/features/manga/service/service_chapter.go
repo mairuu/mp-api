@@ -38,6 +38,42 @@ func (s *Service) CreateChapter(ctx context.Context, ur *app.UserRole, req Creat
 	return &dto, nil
 }
 
+func (s *Service) ListChapters(ctx context.Context, ur *app.UserRole, q *ChapterListQuery) (*PagedDTO, error) {
+	err := s.enforce(ur, model.ResourceChapter, model.ActionRead, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(q.Orders) == 0 {
+		q.Orders = []string{"created_at,desc"}
+	}
+
+	filter := q.ToChapterFilter()
+	filter.State = ptr(string(model.ChapterStatePublish))
+	paging := q.ToPaging()
+	ordering := q.ToOrdering([]string{"title", "number", "volume", "created_at"})
+
+	total, err := s.repo.CountChapters(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	cs, err := s.repo.ListChapters(ctx, filter, paging, ordering)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]ChapterSummaryDTO, len(cs))
+	for i, c := range cs {
+		items[i] = s.mapper.ToChapterSummaryDTO(&c)
+	}
+
+	totalPages := (total + q.PageSize - 1) / q.PageSize
+	dto := NewPagedDTO(total, totalPages, q.PageSize, q.Page, items)
+
+	return &dto, nil
+}
+
 func (s *Service) GetChapterByID(ctx context.Context, ur *app.UserRole, chapterID uuid.UUID) (*ChapterDTO, error) {
 	c, err := s.repo.GetChapterByID(ctx, chapterID)
 	if err != nil {

@@ -27,6 +27,30 @@ func (f *MangaFilterQuery) ToMangaFilter() repo.MangaFilter {
 	}
 }
 
+type ChapterListQuery struct {
+	ChapterFilterQuery
+	PagingQuery
+	OrderingQuery
+}
+
+type ChapterFilterQuery struct {
+	IDs      []string `form:"ids[]"`
+	MangaIDs []string `form:"manga_ids[]"`
+	Title    *string  `form:"title"`
+	Number   *string  `form:"number"`
+	Volume   *string  `form:"volume"`
+}
+
+func (f *ChapterFilterQuery) ToChapterFilter() repo.ChapterFilter {
+	return repo.ChapterFilter{
+		IDs:      f.IDs,
+		MangaIDs: f.MangaIDs,
+		Title:    f.Title,
+		Number:   f.Number,
+		Volume:   f.Volume,
+	}
+}
+
 type OrderingQuery struct {
 	// syntax: order=field1,asc&order=field2,desc
 	Orders []string `form:"orders[]"`

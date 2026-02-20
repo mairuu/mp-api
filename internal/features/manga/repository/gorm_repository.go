@@ -199,6 +199,38 @@ func (r *GormRepository) SaveChapter(ctx context.Context, c *model.Chapter) erro
 	return nil
 }
 
+func (r *GormRepository) CountChapters(ctx context.Context, filter ChapterFilter) (int, error) {
+	q := r.db.WithContext(ctx).
+		Model(&ChapterDB{})
+	q = applyChapterFilter(q, filter)
+
+	var count int64
+	if err := q.Count(&count).Error; err != nil {
+		return 0, fmt.Errorf("count chapters: %w", err)
+	}
+	return int(count), nil
+}
+
+func (r *GormRepository) ListChapters(ctx context.Context, filter ChapterFilter, pagging Pagging, ordering []Ordering) ([]ChapterSummary, error) {
+	q := r.db.WithContext(ctx).
+		Model(&ChapterDB{}).
+		Select("id", "manga_id", "title", "number", "volume")
+	q = applyChapterFilter(q, filter)
+	q = applyPagging(q, pagging)
+	q = applyOrderings(q, ordering)
+
+	var chapters []ChapterSummary
+	if err := q.Scan(&chapters).Error; err != nil {
+		return nil, fmt.Errorf("list chapters: %w", err)
+	}
+
+	if chapters == nil {
+		chapters = []ChapterSummary{}
+	}
+
+	return chapters, nil
+}
+
 func (r *GormRepository) GetChapterByID(ctx context.Context, id uuid.UUID) (*model.Chapter, error) {
 	cdb, err := gorm.G[ChapterDB](r.db).Where("id = ?", id).First(ctx)
 	if err != nil {
@@ -236,6 +268,36 @@ func applyMangaFilter(q *gorm.DB, filter MangaFilter) *gorm.DB {
 	}
 	if filter.Status != nil {
 		q = q.Where("status = ?", *filter.Status)
+	}
+	if filter.State != nil {
+		q = q.Where("state = ?", *filter.State)
+	}
+	return q
+}
+
+func applyChapterFilter(q *gorm.DB, filter ChapterFilter) *gorm.DB {
+	if len(filter.IDs) > 0 {
+		if len(filter.IDs) == 1 {
+			q = q.Where("id = ?", filter.IDs[0])
+		} else {
+			q = q.Where("id IN ?", filter.IDs)
+		}
+	}
+	if len(filter.MangaIDs) > 0 {
+		if len(filter.MangaIDs) == 1 {
+			q = q.Where("manga_id = ?", filter.MangaIDs[0])
+		} else {
+			q = q.Where("manga_id IN ?", filter.MangaIDs)
+		}
+	}
+	if filter.Title != nil {
+		q = q.Where("title ILIKE ?", "%"+*filter.Title+"%")
+	}
+	if filter.Number != nil {
+		q = q.Where("number = ?", *filter.Number)
+	}
+	if filter.Volume != nil {
+		q = q.Where("volume = ?", *filter.Volume)
 	}
 	if filter.State != nil {
 		q = q.Where("state = ?", *filter.State)

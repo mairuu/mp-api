@@ -19,13 +19,24 @@ type Repository interface {
 	DeleteChapterByID(ctx context.Context, id uuid.UUID) error
 
 	GetChapterByID(ctx context.Context, id uuid.UUID) (*model.Chapter, error)
+	CountChapters(ctx context.Context, filter ChapterFilter) (int, error)
+	ListChapters(ctx context.Context, filter ChapterFilter, paging Pagging, ordering []Ordering) ([]ChapterSummary, error)
 }
 
 type MangaFilter struct {
-	IDs    []string // relax the type to string
+	IDs    []string
 	Title  *string
 	Status *string
 	State  *string
+}
+
+type ChapterFilter struct {
+	IDs      []string
+	MangaIDs []string
+	Title    *string
+	Number   *string
+	Volume   *string
+	State    *string
 }
 
 type Pagging struct {

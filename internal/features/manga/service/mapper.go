@@ -65,6 +65,20 @@ func (mp *mapper) ToMangaDTO(m *model.Manga) MangaDTO {
 	}
 }
 
+func (mp *mapper) ToChapterSummaryDTO(c *repo.ChapterSummary) ChapterSummaryDTO {
+	if c == nil {
+		return ChapterSummaryDTO{}
+	}
+
+	return ChapterSummaryDTO{
+		ID:      c.ID.String(),
+		MangaID: c.MangaID.String(),
+		Title:   c.Title,
+		Volume:  c.Volume,
+		Number:  c.Number,
+	}
+}
+
 func (mp *mapper) ToChapterDTO(c *model.Chapter) ChapterDTO {
 	if c == nil {
 		return ChapterDTO{}

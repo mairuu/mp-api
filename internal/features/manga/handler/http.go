@@ -36,7 +36,7 @@ func (h *Handler) RegisterRoutes(router gin.IRouter) {
 	chapters := router.Group("chapters")
 	{
 		chapters.POST("", h.CreateChapter)
-		// chapters.GET("", h.ListChapters)
+		chapters.GET("", h.ListChapters)
 		chapters.GET(":chapter_id", h.GetChapterByID)
 		// chapters.PUT(":chapter_id", h.UpdateChapter)
 		chapters.DELETE(":chapter_id", h.DeleteChapter)
@@ -64,13 +64,13 @@ func (h *Handler) CreateManga(ctx *gin.Context) {
 func (h *Handler) ListMangas(ctx *gin.Context) {
 	ur := h.userRoleFromContext(ctx)
 
-	var pq service.MangaListQuery
-	if err := httptransport.BindQuery(ctx, &pq, h.log); err != nil {
+	var q service.MangaListQuery
+	if err := httptransport.BindQuery(ctx, &q, h.log); err != nil {
 		h.handleError(ctx, err)
 		return
 	}
 
-	dto, err := h.service.ListMangas(ctx.Request.Context(), ur, &pq)
+	dto, err := h.service.ListMangas(ctx.Request.Context(), ur, &q)
 	if err != nil {
 		h.handleError(ctx, err)
 		return
@@ -172,6 +172,24 @@ func (h *Handler) CreateChapter(ctx *gin.Context) {
 	}
 
 	httptransport.SuccessResponse(ctx, http.StatusCreated, chapter)
+}
+
+func (h *Handler) ListChapters(ctx *gin.Context) {
+	ur := h.userRoleFromContext(ctx)
+
+	var pq service.ChapterListQuery
+	if err := httptransport.BindQuery(ctx, &pq, h.log); err != nil {
+		h.handleError(ctx, err)
+		return
+	}
+
+	dto, err := h.service.ListChapters(ctx.Request.Context(), ur, &pq)
+	if err != nil {
+		h.handleError(ctx, err)
+		return
+	}
+
+	httptransport.SuccessResponse(ctx, http.StatusOK, dto)
 }
 
 func (h *Handler) GetChapterByID(ctx *gin.Context) {
