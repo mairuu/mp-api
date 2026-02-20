@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/mairuu/mp-api/internal/app"
 	"github.com/mairuu/mp-api/internal/features/manga/model"
+	"github.com/mairuu/mp-api/internal/platform/collections"
+	"github.com/mairuu/mp-api/internal/platform/storage"
 )
 
 func (s *Service) CreateChapter(ctx context.Context, ur *app.UserRole, req CreateChapterDTO) (*ChapterDTO, error) {
@@ -110,10 +113,35 @@ func (s *Service) UpdateChapter(ctx context.Context, ur *app.UserRole, id uuid.U
 		return nil, err
 	}
 
+	r, err := s.processChapterPageChanges(c.Pages, req.Pages)
+	if err != nil {
+		return nil, err
+	}
+
 	err = c.Updater().
 		Title(req.Title).
 		Volume(req.Volume).
 		Number(req.Number).
+		Pages(ptr(r.Merged())).
+		Apply()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(r.Added) > 0 {
+		for _, p := range r.Added {
+			img, err := s.processNewChapterPage(ctx, ur, c.ID, p.ObjectName)
+			if err != nil {
+				return nil, err
+			}
+			p.Width = img.width
+			p.Height = img.height
+			p.ObjectName = img.objectName
+		}
+	}
+
+	err = c.Updater().
+		Pages(ptr(r.Merged())).
 		Apply()
 	if err != nil {
 		return nil, err
@@ -126,6 +154,87 @@ func (s *Service) UpdateChapter(ctx context.Context, ur *app.UserRole, id uuid.U
 
 	dto := s.mapper.ToChapterDTO(c)
 	return &dto, nil
+}
+
+func (s *Service) processChapterPageChanges(existing []model.Page, dtos *[]string) (*collections.DiffResult[model.Page], error) {
+	if dtos == nil {
+		r := collections.DiffResult[model.Page]{
+			Added:   nil,
+			Updated: make([]*model.Page, len(existing)),
+			Deleted: nil,
+		}
+		for i := range existing {
+			r.Updated[i] = &existing[i]
+		}
+		return &r, nil
+	}
+
+	newPages := make([]model.Page, len(*dtos))
+	for i, objName := range *dtos {
+		newPages[i] = model.Page{ObjectName: objName, Width: 1, Height: 1}
+	}
+
+	differ := collections.IdentifiableDiffer[string, model.Page]{
+		GetKey: func(p *model.Page) string {
+			return p.ObjectName
+		},
+	}
+
+	return differ.Diff(existing, newPages)
+}
+
+type pageImage struct {
+	width      int
+	height     int
+	objectName string
+}
+
+func (s *Service) processNewChapterPage(ctx context.Context, ur *app.UserRole, chapterID uuid.UUID, stagingObjectName string) (*pageImage, error) {
+	// check if user owns the staging object
+	meta, err := s.temporaryBucket.GetMetadata(ctx, stagingObjectName)
+	if err != nil {
+		if errors.Is(err, storage.ErrObjectNotFound) {
+			return nil, model.ErrPageNotFound.WithArg("object_name", stagingObjectName)
+		}
+		return nil, err
+	}
+
+	// check if the staging object belongs to the user
+	// todo: create a session-based temporary bucket
+	if meta.MetaData["user_id"] != ur.ID.String() {
+		return nil, model.ErrPageNotFound.WithArg("object_name", stagingObjectName)
+	}
+
+	f, err := s.temporaryBucket.Download(ctx, stagingObjectName)
+	if err != nil {
+		if errors.Is(err, storage.ErrObjectNotFound) {
+			return nil, model.ErrPageNotFound.WithArg("object_name", stagingObjectName)
+		}
+		return nil, err
+	}
+	defer f.Close()
+
+	img, err := s.decodeImage(f)
+	if err != nil {
+		return nil, err
+	}
+
+	fileName := uuid.New().String()
+	objectName := chapterPageObjectName(chapterID, fileName)
+
+	if err := s.uploadImage(ctx, objectName, img); err != nil {
+		return nil, err
+	}
+
+	if err := s.temporaryBucket.Delete(ctx, stagingObjectName); err != nil {
+		s.log.WarnContext(ctx, "failed to delete staging object after processing new page", "object_name", stagingObjectName, "error", err)
+	}
+
+	return &pageImage{
+		width:      img.Bounds().Dx(),
+		height:     img.Bounds().Dy(),
+		objectName: objectName,
+	}, nil
 }
 
 func (s *Service) DeleteChapter(ctx context.Context, ur *app.UserRole, id uuid.UUID) error {
@@ -145,4 +254,12 @@ func (s *Service) DeleteChapter(ctx context.Context, ur *app.UserRole, id uuid.U
 	}
 
 	return s.repo.DeleteChapterByID(ctx, id)
+}
+
+func chapterPageObjectName(chapterID uuid.UUID, filename string) string {
+	return chapterResourcePrefix(chapterID) + filename
+}
+
+func chapterResourcePrefix(chapterID uuid.UUID) string {
+	return chapterID.String() + "/"
 }

@@ -15,6 +15,7 @@ var (
 	ErrCoverNotFound          = errors.New("cover_not_found")
 	ErrUnsupportedImageFormat = errors.New("unsupported_image_format")
 	ErrEmptyPages             = errors.New("empty_pages")
+	ErrPageNotFound           = errors.New("page_not_found")
 	ErrInvalidPageWidth       = errors.New("invalid_page_width")
 	ErrInvalidPageHeight      = errors.New("invalid_page_height")
 	ErrEmptyPageObjectName    = errors.New("empty_page_object_name")

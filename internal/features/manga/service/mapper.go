@@ -84,11 +84,21 @@ func (mp *mapper) ToChapterDTO(c *model.Chapter) ChapterDTO {
 		return ChapterDTO{}
 	}
 
+	pages := make([]PageDTO, 0, len(c.Pages))
+	for i := range c.Pages {
+		pages = append(pages, PageDTO{
+			Width:      c.Pages[i].Width,
+			Height:     c.Pages[i].Height,
+			ObjectName: c.Pages[i].ObjectName,
+		})
+	}
+
 	return ChapterDTO{
 		ID:      c.ID.String(),
 		MangaID: c.MangaID.String(),
 		Title:   c.Title,
 		Volume:  c.Volume,
 		Number:  c.Number,
+		Pages:   pages,
 	}
 }

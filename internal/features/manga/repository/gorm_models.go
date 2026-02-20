@@ -101,6 +101,7 @@ type ChapterDB struct {
 	Volume    *string   `gorm:"type:varchar(10)"`
 	Number    string    `gorm:"type:varchar(10);not null;uniqueIndex:idx_manga_number"`
 	State     string    `gorm:"type:varchar(10);not null;index:idx_state"`
+	Pages     []PageDB  `gorm:"foreignKey:ChapterID;constraint:OnDelete:CASCADE;"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -110,6 +111,10 @@ func (c *ChapterDB) TableName() string {
 }
 
 func toChapterDB(c *model.Chapter) ChapterDB {
+	pages := make([]PageDB, 0, len(c.Pages))
+	for i := range c.Pages {
+		pages = append(pages, toPageDB(&c.Pages[i], c.ID, i+1))
+	}
 	return ChapterDB{
 		ID:        c.ID,
 		MangaID:   c.MangaID,
@@ -117,12 +122,17 @@ func toChapterDB(c *model.Chapter) ChapterDB {
 		Volume:    c.Volume,
 		Number:    c.Number,
 		State:     string(c.State),
+		Pages:     pages,
 		CreatedAt: c.CreatedAt,
 		UpdatedAt: c.UpdatedAt,
 	}
 }
 
 func (cdb *ChapterDB) toChapterModel() model.Chapter {
+	pages := make([]model.Page, 0, len(cdb.Pages))
+	for i := range cdb.Pages {
+		pages = append(pages, cdb.Pages[i].toPageModel())
+	}
 	return model.Chapter{
 		ID:        cdb.ID,
 		MangaID:   cdb.MangaID,
@@ -130,7 +140,38 @@ func (cdb *ChapterDB) toChapterModel() model.Chapter {
 		Volume:    cdb.Volume,
 		Number:    cdb.Number,
 		State:     model.ChapterState(cdb.State),
+		Pages:     pages,
 		CreatedAt: cdb.CreatedAt,
 		UpdatedAt: cdb.UpdatedAt,
+	}
+}
+
+type PageDB struct {
+	ChapterID  uuid.UUID `gorm:"type:uuid;primaryKey"`
+	Number     int       `gorm:"type:int;primaryKey"`
+	Width      int       `gorm:"type:int;not null"`
+	Height     int       `gorm:"type:int;not null"`
+	ObjectName string    `gorm:"type:varchar(255);not null"`
+}
+
+func (p *PageDB) TableName() string {
+	return "pages"
+}
+
+func toPageDB(page *model.Page, chapterID uuid.UUID, number int) PageDB {
+	return PageDB{
+		ChapterID:  chapterID,
+		Number:     number,
+		Width:      page.Width,
+		Height:     page.Height,
+		ObjectName: page.ObjectName,
+	}
+}
+
+func (pdb *PageDB) toPageModel() model.Page {
+	return model.Page{
+		Width:      pdb.Width,
+		Height:     pdb.Height,
+		ObjectName: pdb.ObjectName,
 	}
 }

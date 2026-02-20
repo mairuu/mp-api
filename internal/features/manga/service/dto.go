@@ -51,17 +51,25 @@ type CreateChapterDTO struct {
 }
 
 type UpdateChapterDTO struct {
-	Title  *string `json:"title"`
-	Volume *string `json:"volume"`
-	Number *string `json:"number"`
+	Title  *string   `json:"title"`
+	Volume *string   `json:"volume"`
+	Number *string   `json:"number"`
+	Pages  *[]string `json:"pages"` // list of page object names
 }
 
 type ChapterDTO struct {
-	ID      string  `json:"id"`
-	MangaID string  `json:"manga_id"`
-	Title   string  `json:"title"`
-	Volume  *string `json:"volume"`
-	Number  string  `json:"number"`
+	ID      string    `json:"id"`
+	MangaID string    `json:"manga_id"`
+	Title   string    `json:"title"`
+	Volume  *string   `json:"volume"`
+	Number  string    `json:"number"`
+	Pages   []PageDTO `json:"pages"`
+}
+
+type PageDTO struct {
+	Width      int    `json:"width"`
+	Height     int    `json:"height"`
+	ObjectName string `json:"object_name"`
 }
 
 type ChapterSummaryDTO struct {

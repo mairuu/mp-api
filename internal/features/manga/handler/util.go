@@ -75,6 +75,7 @@ func toHTTPStatusCode(err error) int {
 		errors.Is(err, model.ErrInvalidVolume),
 		errors.Is(err, model.ErrChapterAlreadyExists),
 		errors.Is(err, model.ErrVolumeAlreadyExists),
+		errors.Is(err, model.ErrPageNotFound), // page not found can be caused by invalid staging object name or the staging object does not belong to the user
 		errors.Is(err, model.ErrUnsupportedImageFormat):
 		return http.StatusBadRequest
 	}

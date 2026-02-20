@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"regexp"
 	"time"
 
@@ -13,8 +14,8 @@ type Chapter struct {
 	Title     string
 	Volume    *string
 	Number    string
-	Pages     []Page
 	State     ChapterState
+	Pages     []Page
 	UpdatedAt time.Time
 	CreatedAt time.Time
 }
@@ -108,26 +109,28 @@ func (u *ChapterUpdater) Number(number *string) *ChapterUpdater {
 	return u
 }
 
-func (u *ChapterUpdater) Pages(pages *[]Page) *ChapterUpdater {
-	if pages == nil {
-		return u
-	}
-	u.opts = append(u.opts, func(c *Chapter) error {
-		if err := validatePages(*pages); err != nil {
-			return err
-		}
-		c.Pages = *pages
-		return nil
-	})
-	return u
-}
-
 func (u *ChapterUpdater) State(state *ChapterState) *ChapterUpdater {
 	if state == nil {
 		return u
 	}
 	u.opts = append(u.opts, func(c *Chapter) error {
 		c.State = *state
+		return nil
+	})
+	return u
+}
+
+func (u *ChapterUpdater) Pages(pages *[]Page) *ChapterUpdater {
+	if pages == nil {
+		return u
+	}
+	u.opts = append(u.opts, func(c *Chapter) error {
+		if err := validatePages(*pages); err != nil {
+			if !errors.Is(err, ErrEmptyPages) || len(c.Pages) > 0 {
+				return err
+			}
+		}
+		c.Pages = *pages
 		return nil
 	})
 	return u

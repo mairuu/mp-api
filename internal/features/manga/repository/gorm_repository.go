@@ -190,6 +190,21 @@ func (r *GormRepository) SaveChapter(ctx context.Context, c *model.Chapter) erro
 			}
 			return fmt.Errorf("upsert chapter: %w", err)
 		}
+
+		// sync pages
+		// delete and re-insert
+		err = tx.Where("chapter_id = ?", c.ID).Delete(&PageDB{}).Error
+		if err != nil {
+			return fmt.Errorf("delete existing pages: %w", err)
+		}
+
+		if len(cdb.Pages) > 0 {
+			err = tx.CreateInBatches(&cdb.Pages, 100).Error
+			if err != nil {
+				return fmt.Errorf("insert pages: %w", err)
+			}
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -232,7 +247,13 @@ func (r *GormRepository) ListChapters(ctx context.Context, filter ChapterFilter,
 }
 
 func (r *GormRepository) GetChapterByID(ctx context.Context, id uuid.UUID) (*model.Chapter, error) {
-	cdb, err := gorm.G[ChapterDB](r.db).Where("id = ?", id).First(ctx)
+	cdb, err := gorm.G[ChapterDB](r.db).
+		Where("id = ?", id).
+		Preload("Pages", func(db gorm.PreloadBuilder) error {
+			db.Order("number")
+			return nil
+		}).
+		First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, model.ErrChapterNotFound.WithArg("id", id.String())

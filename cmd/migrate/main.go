@@ -27,6 +27,7 @@ func main() {
 		&mangarepo.MangaDB{},
 		&mangarepo.CoverArtDB{},
 		&mangarepo.ChapterDB{},
+		&mangarepo.PageDB{},
 	}
 	if err := db.AutoMigrate(allModels...); err != nil {
 		log.Error("failed to migrate database", "error", err)
