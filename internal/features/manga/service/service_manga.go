@@ -249,6 +249,8 @@ func (s *Service) processNewCoverArt(ctx context.Context, ur *app.UserRole, mang
 		return "", err
 	}
 
+	// check if the staging object belongs to the user
+	// todo: create a session-based temporary bucket
 	if meta.MetaData["user_id"] != ur.ID.String() {
 		return "", model.ErrCoverNotFound.WithArg("object_name", statingObjectName)
 	}

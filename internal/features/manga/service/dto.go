@@ -50,6 +50,12 @@ type CreateChapterDTO struct {
 	Number  string  `json:"number" binding:"required"`
 }
 
+type UpdateChapterDTO struct {
+	Title  *string `json:"title"`
+	Volume *string `json:"volume"`
+	Number *string `json:"number"`
+}
+
 type ChapterDTO struct {
 	ID      string  `json:"id"`
 	MangaID string  `json:"manga_id"`

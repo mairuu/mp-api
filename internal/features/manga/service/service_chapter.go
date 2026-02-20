@@ -74,8 +74,8 @@ func (s *Service) ListChapters(ctx context.Context, ur *app.UserRole, q *Chapter
 	return &dto, nil
 }
 
-func (s *Service) GetChapterByID(ctx context.Context, ur *app.UserRole, chapterID uuid.UUID) (*ChapterDTO, error) {
-	c, err := s.repo.GetChapterByID(ctx, chapterID)
+func (s *Service) GetChapterByID(ctx context.Context, ur *app.UserRole, id uuid.UUID) (*ChapterDTO, error) {
+	c, err := s.repo.GetChapterByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -94,8 +94,42 @@ func (s *Service) GetChapterByID(ctx context.Context, ur *app.UserRole, chapterI
 	return &dto, nil
 }
 
-func (s *Service) DeleteChapter(ctx context.Context, ur *app.UserRole, chapterID uuid.UUID) error {
-	c, err := s.repo.GetChapterByID(ctx, chapterID)
+func (s *Service) UpdateChapter(ctx context.Context, ur *app.UserRole, id uuid.UUID, req UpdateChapterDTO) (*ChapterDTO, error) {
+	c, err := s.repo.GetChapterByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := s.repo.GetMangaByID(ctx, c.MangaID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.enforce(ur, model.ResourceChapter, model.ActionUpdate, m)
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.Updater().
+		Title(req.Title).
+		Volume(req.Volume).
+		Number(req.Number).
+		Apply()
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.repo.SaveChapter(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+
+	dto := s.mapper.ToChapterDTO(c)
+	return &dto, nil
+}
+
+func (s *Service) DeleteChapter(ctx context.Context, ur *app.UserRole, id uuid.UUID) error {
+	c, err := s.repo.GetChapterByID(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -110,5 +144,5 @@ func (s *Service) DeleteChapter(ctx context.Context, ur *app.UserRole, chapterID
 		return err
 	}
 
-	return s.repo.DeleteChapterByID(ctx, chapterID)
+	return s.repo.DeleteChapterByID(ctx, id)
 }

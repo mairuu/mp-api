@@ -94,6 +94,20 @@ func (u *ChapterUpdater) Volume(volume *string) *ChapterUpdater {
 	return u
 }
 
+func (u *ChapterUpdater) Number(number *string) *ChapterUpdater {
+	if number == nil {
+		return u
+	}
+	u.opts = append(u.opts, func(c *Chapter) error {
+		if err := validateNumber(*number); err != nil {
+			return err
+		}
+		c.Number = *number
+		return nil
+	})
+	return u
+}
+
 func (u *ChapterUpdater) Pages(pages *[]Page) *ChapterUpdater {
 	if pages == nil {
 		return u
