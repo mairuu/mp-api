@@ -37,3 +37,23 @@ func (s *Service) CreateChapter(ctx context.Context, ur *app.UserRole, req Creat
 	dto := s.mapper.ToChapterDTO(c)
 	return &dto, nil
 }
+
+func (s *Service) GetChapterByID(ctx context.Context, ur *app.UserRole, chapterID uuid.UUID) (*ChapterDTO, error) {
+	c, err := s.repo.GetChapterByID(ctx, chapterID)
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := s.repo.GetMangaByID(ctx, c.MangaID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.enforce(ur, model.ResourceChapter, model.ActionRead, m)
+	if err != nil {
+		return nil, err
+	}
+
+	dto := s.mapper.ToChapterDTO(c)
+	return &dto, nil
+}

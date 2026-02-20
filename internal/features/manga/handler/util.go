@@ -17,6 +17,10 @@ func (h *Handler) mangaIDFromPath(ctx *gin.Context) (uuid.UUID, error) {
 	return uuidFromPath(ctx, "manga_id")
 }
 
+func (h *Handler) chapterIDFromPath(ctx *gin.Context) (uuid.UUID, error) {
+	return uuidFromPath(ctx, "chapter_id")
+}
+
 func (h *Handler) userRoleFromContext(ctx *gin.Context) *app.UserRole {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {

@@ -199,6 +199,19 @@ func (r *GormRepository) SaveChapter(ctx context.Context, c *model.Chapter) erro
 	return nil
 }
 
+func (r *GormRepository) GetChapterByID(ctx context.Context, id uuid.UUID) (*model.Chapter, error) {
+	cdb, err := gorm.G[ChapterDB](r.db).Where("id = ?", id).First(ctx)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, model.ErrChapterNotFound.WithArg("id", id.String())
+		}
+		return nil, fmt.Errorf("get chapter by id: %w", err)
+	}
+
+	cm := cdb.toChapterModel()
+	return &cm, nil
+}
+
 func applyMangaFilter(q *gorm.DB, filter MangaFilter) *gorm.DB {
 	if len(filter.IDs) > 0 {
 		if len(filter.IDs) == 1 {

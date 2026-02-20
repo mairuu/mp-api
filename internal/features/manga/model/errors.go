@@ -8,6 +8,7 @@ var (
 	ErrInvalidTitle           = errors.New("invalid_title")
 	ErrInvalidStatus          = errors.New("invalid_status")
 	ErrInvalidVolume          = errors.New("invalid_volume")
+	ErrChapterNotFound        = errors.New("chapter_not_found")
 	ErrChapterAlreadyExists   = errors.New("chapter_already_exists")
 	ErrInvalidChapterNumber   = errors.New("invalid_chapter_number")
 	ErrVolumeAlreadyExists    = errors.New("volume_already_exists")
