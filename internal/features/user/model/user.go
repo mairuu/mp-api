@@ -76,7 +76,9 @@ func (uu *UserUpdater) Email(email *string) *UserUpdater {
 
 func validateEmail(email string) error {
 	if !emailRegex.MatchString(email) {
-		return ErrInvalidEmail
+		return ErrInvalidEmail.
+			WithArg("email", email).
+			WithMessage("must match pattern: example@domain.com")
 	}
 	return nil
 }
@@ -97,7 +99,9 @@ func (uu *UserUpdater) Username(username *string) *UserUpdater {
 
 func validateUsername(username string) error {
 	if !usernameRegex.MatchString(username) {
-		return ErrInvalidUsername
+		return ErrInvalidUsername.
+			WithArg("username", username).
+			WithMessage("must be 3-30 characters, alphanumeric, dash, or underscore")
 	}
 	return nil
 }
@@ -122,7 +126,9 @@ func (uu *UserUpdater) Role(role *authorization.Role) *UserUpdater {
 			return nil
 		}
 		if !app.IsValidRole(*role) {
-			return ErrInvalidRole
+			return ErrInvalidRole.
+				WithArg("role", string(*role)).
+				WithMessage("must be user, moderator, or admin")
 		}
 		u.Role = *role
 		return nil
@@ -132,7 +138,7 @@ func (uu *UserUpdater) Role(role *authorization.Role) *UserUpdater {
 
 func validatePasswordHash(passwordHash string) error {
 	if passwordHash == "" {
-		return ErrInvalidPassword
+		return ErrInvalidPassword.WithMessage("password hash cannot be empty")
 	}
 	return nil
 }

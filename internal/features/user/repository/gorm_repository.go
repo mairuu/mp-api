@@ -41,7 +41,9 @@ func (r *GormRepository) SaveUser(ctx context.Context, u *model.User) error {
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return model.ErrUserAlreadyExists
+			return model.ErrUserAlreadyExists.
+				WithArg("username", u.Username).
+				WithArg("email", u.Email)
 		}
 		return fmt.Errorf("upsert user: %w", err)
 	}
@@ -53,7 +55,7 @@ func (r *GormRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*model.
 	udb, err := gorm.G[UserDB](r.db).Where("id = ?", id).First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("%w; id=%s", model.ErrUserNotFound, id)
+			return nil, model.ErrUserNotFound.WithArg("id", id.String())
 		}
 		return nil, fmt.Errorf("get user by id: %w", err)
 	}
@@ -65,7 +67,7 @@ func (r *GormRepository) GetUserByEmailOrUsername(ctx context.Context, emailOrUs
 	udb, err := gorm.G[UserDB](r.db).Where("email = ? OR username = ?", emailOrUsername, emailOrUsername).First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("%w; emailOrUsername=%s", model.ErrUserNotFound, emailOrUsername)
+			return nil, model.ErrUserNotFound.WithArg("email_or_username", emailOrUsername)
 		}
 		return nil, fmt.Errorf("get user by email or username: %w", err)
 	}
@@ -79,7 +81,7 @@ func (r *GormRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
 		return fmt.Errorf("delete user: %w", err)
 	}
 	if affected == 0 {
-		return fmt.Errorf("%w; id=%s", model.ErrUserNotFound, id)
+		return model.ErrUserNotFound.WithArg("id", id.String())
 	}
 	return nil
 }
