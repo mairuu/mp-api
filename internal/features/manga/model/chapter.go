@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"regexp"
 	"time"
 
@@ -131,17 +132,17 @@ func (u *ChapterUpdater) Apply() error {
 
 func validatePages(pages []Page) error {
 	if len(pages) == 0 {
-		return ErrEmptyPages
+		return fmt.Errorf("%w; pages cannot be empty", ErrEmptyPages)
 	}
 	for _, page := range pages {
 		if page.Width <= 0 {
-			return ErrInvalidPageWidth
+			return fmt.Errorf("%w; page width must be greater than zero", ErrInvalidPageWidth)
 		}
 		if page.Height <= 0 {
-			return ErrInvalidPageHeight
+			return fmt.Errorf("%w; page height must be greater than zero", ErrInvalidPageHeight)
 		}
 		if page.ObjectName == "" {
-			return ErrEmptyPageObjectName
+			return fmt.Errorf("%w; page object name cannot be empty", ErrEmptyPageObjectName)
 		}
 	}
 	return nil
@@ -152,10 +153,10 @@ var numberRegex = `^(0|[1-9]\d*)(\.\d+)?([a-z]+)?$`
 func validateNumber(number string) error {
 	matched, err := regexp.MatchString(numberRegex, number)
 	if err != nil {
-		return ErrinvalidChapterNumber
+		return err
 	}
 	if !matched {
-		return ErrinvalidChapterNumber
+		return fmt.Errorf("%w; must follow format: number, decimal, or number with letter suffix (e.g., 1, 1.5, 1a)", ErrInvalidChapterNumber)
 	}
 	return nil
 }

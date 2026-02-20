@@ -167,7 +167,7 @@ func (u *MangaUpdater) CoverArts(covers []CoverArt) *MangaUpdater {
 				return err
 			}
 			if uniqueVolumes[cover.Volume] {
-				return fmt.Errorf("%w: volume = %s", ErrDuplicateVolume, cover.Volume)
+				return fmt.Errorf("%w; volume=%s", ErrVolumeAlreadyExists, cover.Volume)
 			}
 			uniqueVolumes[cover.Volume] = true
 		}
@@ -213,7 +213,7 @@ func (state MangaState) IsValid() bool {
 
 func validateTitle(title string) error {
 	if title == "" {
-		return ErrInvalidTitle
+		return fmt.Errorf("%w; title cannot be empty", ErrInvalidTitle)
 	}
 	return nil
 }
@@ -224,7 +224,7 @@ func validateSynopsis(_ string) error {
 
 func validateStatus(status MangaStatus) error {
 	if !status.IsValid() {
-		return ErrInvalidStatus
+		return fmt.Errorf("%w; status must be one of: ongoing, completed, hiatus, cancelled", ErrInvalidStatus)
 	}
 	return nil
 }
@@ -237,10 +237,10 @@ func validateVolume(volume *string) error {
 	}
 	matched, err := regexp.MatchString(volumeRegex, *volume)
 	if err != nil {
-		return ErrInvalidVolume
+		return err
 	}
 	if !matched {
-		return ErrInvalidVolume
+		return fmt.Errorf("%w; must follow format: number, decimal, or number with letter suffix (e.g., 1, 1.5, 1a)", ErrInvalidVolume)
 	}
 	return nil
 }

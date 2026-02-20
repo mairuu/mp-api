@@ -42,7 +42,7 @@ func (r *GormRepository) SaveManga(ctx context.Context, m *model.Manga) error {
 
 		if err != nil {
 			if errors.Is(err, gorm.ErrDuplicatedKey) {
-				return model.ErrMangaAlreadyExists
+				return fmt.Errorf("%w; id=%s", model.ErrMangaAlreadyExists, m.ID)
 			}
 			return fmt.Errorf("upsert manga: %w", err)
 		}
@@ -119,7 +119,7 @@ func (r *GormRepository) GetMangaByID(ctx context.Context, id uuid.UUID) (*model
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, model.ErrMangaNotFound
+			return nil, fmt.Errorf("%w; id=%s", model.ErrMangaNotFound, id)
 		}
 		return nil, fmt.Errorf("get manga by id: %w", err)
 	}
@@ -181,10 +181,10 @@ func (r *GormRepository) SaveChapter(ctx context.Context, c *model.Chapter) erro
 			Create(&cdb).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrForeignKeyViolated) {
-				return model.ErrMangaNotFound
+				return fmt.Errorf("%w; manga_id=%s", model.ErrMangaNotFound, c.MangaID)
 			}
 			if errors.Is(err, gorm.ErrDuplicatedKey) {
-				return model.ErrDuplicateChapter
+				return fmt.Errorf("%w; manga_id=%s, number=%s", model.ErrChapterAlreadyExists, c.MangaID, c.Number)
 			}
 			return fmt.Errorf("upsert chapter: %w", err)
 		}
