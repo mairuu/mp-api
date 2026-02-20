@@ -67,6 +67,7 @@ func toHTTPStatusCode(err error) int {
 	switch {
 	case
 		errors.Is(err, model.ErrCoverNotFound),
+		errors.Is(err, model.ErrChapterNotFound),
 		errors.Is(err, model.ErrMangaNotFound):
 		return http.StatusNotFound
 	case errors.Is(err, model.ErrInvalidTitle),

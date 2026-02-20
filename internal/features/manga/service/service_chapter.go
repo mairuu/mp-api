@@ -57,3 +57,22 @@ func (s *Service) GetChapterByID(ctx context.Context, ur *app.UserRole, chapterI
 	dto := s.mapper.ToChapterDTO(c)
 	return &dto, nil
 }
+
+func (s *Service) DeleteChapter(ctx context.Context, ur *app.UserRole, chapterID uuid.UUID) error {
+	c, err := s.repo.GetChapterByID(ctx, chapterID)
+	if err != nil {
+		return err
+	}
+
+	m, err := s.repo.GetMangaByID(ctx, c.MangaID)
+	if err != nil {
+		return err
+	}
+
+	err = s.enforce(ur, model.ResourceChapter, model.ActionDelete, m)
+	if err != nil {
+		return err
+	}
+
+	return s.repo.DeleteChapterByID(ctx, chapterID)
+}

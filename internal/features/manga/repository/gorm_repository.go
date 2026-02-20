@@ -103,7 +103,7 @@ func (r *GormRepository) DeleteMangaByID(ctx context.Context, id uuid.UUID) erro
 		return fmt.Errorf("delete manga: %w", err)
 	}
 	if affected == 0 {
-		return fmt.Errorf("%w; id=%s", model.ErrMangaNotFound, id)
+		return model.ErrMangaNotFound.WithArg("id", id.String())
 	}
 	return nil
 }
@@ -210,6 +210,17 @@ func (r *GormRepository) GetChapterByID(ctx context.Context, id uuid.UUID) (*mod
 
 	cm := cdb.toChapterModel()
 	return &cm, nil
+}
+
+func (r *GormRepository) DeleteChapterByID(ctx context.Context, id uuid.UUID) error {
+	affected, err := gorm.G[ChapterDB](r.db).Where("id = ?", id).Delete(ctx)
+	if err != nil {
+		return fmt.Errorf("delete chapter: %w", err)
+	}
+	if affected == 0 {
+		return model.ErrChapterNotFound.WithArg("id", id.String())
+	}
+	return nil
 }
 
 func applyMangaFilter(q *gorm.DB, filter MangaFilter) *gorm.DB {

@@ -16,6 +16,7 @@ type Repository interface {
 	ListMangas(ctx context.Context, filter MangaFilter, paging Pagging, ordering []Ordering) ([]MangaSummary, error)
 
 	SaveChapter(ctx context.Context, c *model.Chapter) error
+	DeleteChapterByID(ctx context.Context, id uuid.UUID) error
 
 	GetChapterByID(ctx context.Context, id uuid.UUID) (*model.Chapter, error)
 }

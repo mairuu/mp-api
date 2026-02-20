@@ -39,7 +39,7 @@ func (h *Handler) RegisterRoutes(router gin.IRouter) {
 		// chapters.GET("", h.ListChapters)
 		chapters.GET(":chapter_id", h.GetChapterByID)
 		// chapters.PUT(":chapter_id", h.UpdateChapter)
-		// chapters.DELETE(":chapter_id", h.DeleteChapter)
+		chapters.DELETE(":chapter_id", h.DeleteChapter)
 	}
 }
 
@@ -190,4 +190,21 @@ func (h *Handler) GetChapterByID(ctx *gin.Context) {
 	}
 
 	httptransport.SuccessResponse(ctx, http.StatusOK, dto)
+}
+
+func (h *Handler) DeleteChapter(ctx *gin.Context) {
+	ur := h.userRoleFromContext(ctx)
+
+	chapterID, err := h.chapterIDFromPath(ctx)
+	if err != nil {
+		h.handleError(ctx, err)
+		return
+	}
+
+	if err := h.service.DeleteChapter(ctx.Request.Context(), ur, chapterID); err != nil {
+		h.handleError(ctx, err)
+		return
+	}
+
+	httptransport.SuccessResponse(ctx, http.StatusOK, nil)
 }
