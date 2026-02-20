@@ -1,6 +1,7 @@
 package model
 
 import (
+	"regexp"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,7 +11,8 @@ type Chapter struct {
 	ID        uuid.UUID
 	MangaID   uuid.UUID
 	Title     string
-	Volume    string
+	Volume    *string
+	Number    string
 	Pages     []Page
 	State     ChapterState
 	UpdatedAt time.Time
@@ -30,20 +32,23 @@ type Page struct {
 	ObjectName string
 }
 
-func NewChapter(mangaID uuid.UUID, title, volume string) (*Chapter, error) {
+func NewChapter(mangaID uuid.UUID, title, number string, volume *string) (*Chapter, error) {
 	if err := validateTitle(title); err != nil {
 		return nil, err
 	}
 	if err := validateVolume(volume); err != nil {
 		return nil, err
 	}
-
+	if err := validateNumber(number); err != nil {
+		return nil, err
+	}
 	now := time.Now()
 	return &Chapter{
 		ID:        uuid.New(),
 		MangaID:   mangaID,
 		Title:     title,
 		Volume:    volume,
+		Number:    number,
 		State:     ChapterStateDraft,
 		UpdatedAt: now,
 		CreatedAt: now,
@@ -80,10 +85,10 @@ func (u *ChapterUpdater) Volume(volume *string) *ChapterUpdater {
 		return u
 	}
 	u.opts = append(u.opts, func(c *Chapter) error {
-		if err := validateVolume(*volume); err != nil {
+		if err := validateVolume(volume); err != nil {
 			return err
 		}
-		c.Volume = *volume
+		c.Volume = volume
 		return nil
 	})
 	return u
@@ -138,6 +143,19 @@ func validatePages(pages []Page) error {
 		if page.ObjectName == "" {
 			return ErrEmptyPageObjectName
 		}
+	}
+	return nil
+}
+
+var numberRegex = `^(0|[1-9]\d*)(\.\d+)?([a-z]+)?$`
+
+func validateNumber(number string) error {
+	matched, err := regexp.MatchString(numberRegex, number)
+	if err != nil {
+		return ErrinvalidChapterNumber
+	}
+	if !matched {
+		return ErrinvalidChapterNumber
 	}
 	return nil
 }

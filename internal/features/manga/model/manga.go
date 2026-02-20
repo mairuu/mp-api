@@ -70,7 +70,7 @@ func NewManga(ownerID uuid.UUID, title, synopsis string, status MangaStatus) (*M
 }
 
 func NewCoverArt(volume, objectName, description string) (*CoverArt, error) {
-	if err := validateVolume(volume); err != nil {
+	if err := validateVolume(&volume); err != nil {
 		return nil, err
 	}
 	return &CoverArt{
@@ -163,7 +163,7 @@ func (u *MangaUpdater) CoverArts(covers []CoverArt) *MangaUpdater {
 	u.opts = append(u.opts, func(m *Manga) error {
 		uniqueVolumes := make(map[string]bool)
 		for _, cover := range covers {
-			if err := validateVolume(cover.Volume); err != nil {
+			if err := validateVolume(&cover.Volume); err != nil {
 				return err
 			}
 			if uniqueVolumes[cover.Volume] {
@@ -231,8 +231,11 @@ func validateStatus(status MangaStatus) error {
 
 var volumeRegex = `^(0|[1-9]\d*)(\.\d+)?([a-z]+)?$`
 
-func validateVolume(volume string) error {
-	matched, err := regexp.MatchString(volumeRegex, volume)
+func validateVolume(volume *string) error {
+	if volume == nil {
+		return nil
+	}
+	matched, err := regexp.MatchString(volumeRegex, *volume)
 	if err != nil {
 		return ErrInvalidVolume
 	}

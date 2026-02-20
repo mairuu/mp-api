@@ -1,5 +1,7 @@
 package service
 
+// manga
+
 type CreateMangaDTO struct {
 	Title    string `json:"title" binding:"required"`
 	Synopsis string `json:"synopsis" binding:""`
@@ -37,6 +39,23 @@ type CoverArtDTO struct {
 type MangaSummaryDTO struct {
 	ID    string `json:"id"`
 	Title string `json:"title"`
+}
+
+// chapter
+
+type CreateChapterDTO struct {
+	MangaID string  `json:"manga_id" binding:"required,uuid"`
+	Title   string  `json:"title" binding:"required"`
+	Volume  *string `json:"volume" binding:""`
+	Number  string  `json:"number" binding:"required"`
+}
+
+type ChapterDTO struct {
+	ID      string  `json:"id"`
+	MangaID string  `json:"manga_id"`
+	Title   string  `json:"title"`
+	Volume  *string `json:"volume"`
+	Number  string  `json:"number"`
 }
 
 // pagination

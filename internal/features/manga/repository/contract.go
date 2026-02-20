@@ -14,6 +14,8 @@ type Repository interface {
 	GetMangaByID(ctx context.Context, id uuid.UUID) (*model.Manga, error)
 	CountMangas(ctx context.Context, filter MangaFilter) (int, error)
 	ListMangas(ctx context.Context, filter MangaFilter, paging Pagging, ordering []Ordering) ([]MangaSummary, error)
+
+	SaveChapter(ctx context.Context, c *model.Chapter) error
 }
 
 type MangaFilter struct {

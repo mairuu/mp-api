@@ -68,6 +68,7 @@ func toHTTPStatusCode(err error) int {
 	case errors.Is(err, model.ErrInvalidTitle),
 		errors.Is(err, model.ErrInvalidStatus),
 		errors.Is(err, model.ErrInvalidVolume),
+		errors.Is(err, model.ErrDuplicateChapter),
 		errors.Is(err, model.ErrDuplicateVolume),
 		errors.Is(err, model.ErrUnsupportedImageFormat):
 		return http.StatusBadRequest

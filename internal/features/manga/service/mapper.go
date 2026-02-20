@@ -64,3 +64,17 @@ func (mp *mapper) ToMangaDTO(m *model.Manga) MangaDTO {
 		CoverArts: covers,
 	}
 }
+
+func (mp *mapper) ToChapterDTO(c *model.Chapter) ChapterDTO {
+	if c == nil {
+		return ChapterDTO{}
+	}
+
+	return ChapterDTO{
+		ID:      c.ID.String(),
+		MangaID: c.MangaID.String(),
+		Title:   c.Title,
+		Volume:  c.Volume,
+		Number:  c.Number,
+	}
+}

@@ -7,6 +7,8 @@ import (
 	"github.com/mairuu/mp-api/internal/features/manga/model"
 )
 
+// mangas
+
 type MangaDB struct {
 	ID        uuid.UUID    `gorm:"type:uuid;primaryKey"`
 	OwnerID   uuid.UUID    `gorm:"type:uuid;not null;index:idx_user_id"`
@@ -86,5 +88,49 @@ func (cdb *CoverArtDB) toCoverArtModel() model.CoverArt {
 		Volume:      cdb.Volume,
 		ObjectName:  cdb.ObjectName,
 		Description: cdb.Description,
+	}
+}
+
+// chapters
+
+type ChapterDB struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey"`
+	MangaID   uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_manga_number"`
+	Manga     *MangaDB  `gorm:"foreignKey:MangaID;constraint:OnDelete:CASCADE;"`
+	Title     string    `gorm:"type:varchar(255)"`
+	Volume    *string   `gorm:"type:varchar(10)"`
+	Number    string    `gorm:"type:varchar(10);not null;uniqueIndex:idx_manga_number"`
+	State     string    `gorm:"type:varchar(10);not null;index:idx_state"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (c *ChapterDB) TableName() string {
+	return "chapters"
+}
+
+func toChapterDB(c *model.Chapter) ChapterDB {
+	return ChapterDB{
+		ID:        c.ID,
+		MangaID:   c.MangaID,
+		Title:     c.Title,
+		Volume:    c.Volume,
+		Number:    c.Number,
+		State:     string(c.State),
+		CreatedAt: c.CreatedAt,
+		UpdatedAt: c.UpdatedAt,
+	}
+}
+
+func (cdb *ChapterDB) toChapterModel() model.Chapter {
+	return model.Chapter{
+		ID:        cdb.ID,
+		MangaID:   cdb.MangaID,
+		Title:     cdb.Title,
+		Volume:    cdb.Volume,
+		Number:    cdb.Number,
+		State:     model.ChapterState(cdb.State),
+		CreatedAt: cdb.CreatedAt,
+		UpdatedAt: cdb.UpdatedAt,
 	}
 }

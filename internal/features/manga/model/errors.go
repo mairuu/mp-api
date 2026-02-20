@@ -8,6 +8,8 @@ var (
 	ErrInvalidTitle           = errors.New("title cannot be empty")
 	ErrInvalidStatus          = errors.New("status must be one of: ongoing, completed, hiatus, cancelled")
 	ErrInvalidVolume          = errors.New("volume must follow format: number, decimal, or number with letter suffix (e.g., 1, 1.5, 1a)")
+	ErrDuplicateChapter       = errors.New("chapter already exists for this manga")
+	ErrinvalidChapterNumber   = errors.New("chapter number must follow format: number, decimal, or number with letter suffix (e.g., 1, 1.5, 1a)")
 	ErrDuplicateVolume        = errors.New("volume already exists for this manga")
 	ErrCoverNotFound          = errors.New("cover art not found")
 	ErrUnsupportedImageFormat = errors.New("image format not supported")

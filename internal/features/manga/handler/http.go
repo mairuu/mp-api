@@ -32,6 +32,15 @@ func (h *Handler) RegisterRoutes(router gin.IRouter) {
 
 		mangas.GET(":manga_id/publish", h.PublishManga)
 	}
+
+	chapters := router.Group("chapters")
+	{
+		chapters.POST("", h.CreateChapter)
+		// chapters.GET("", h.ListChapters)
+		// chapters.GET(":chapter_id", h.GetChapterByID)
+		// chapters.PUT(":chapter_id", h.UpdateChapter)
+		// chapters.DELETE(":chapter_id", h.DeleteChapter)
+	}
 }
 
 func (h *Handler) CreateManga(ctx *gin.Context) {
@@ -145,4 +154,22 @@ func (h *Handler) PublishManga(ctx *gin.Context) {
 	}
 
 	httptransport.SuccessResponse(ctx, http.StatusOK, dto)
+}
+
+func (h *Handler) CreateChapter(ctx *gin.Context) {
+	ur := h.userRoleFromContext(ctx)
+
+	var req service.CreateChapterDTO
+	if err := httptransport.BindJSON(ctx, &req, h.log); err != nil {
+		h.handleError(ctx, err)
+		return
+	}
+
+	chapter, err := h.service.CreateChapter(ctx.Request.Context(), ur, req)
+	if err != nil {
+		h.handleError(ctx, err)
+		return
+	}
+
+	httptransport.SuccessResponse(ctx, http.StatusCreated, chapter)
 }

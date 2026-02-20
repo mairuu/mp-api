@@ -160,6 +160,43 @@ func (r *GormRepository) ListMangas(ctx context.Context, filter MangaFilter, pag
 	return mangas, nil
 }
 
+func (r *GormRepository) SaveChapter(ctx context.Context, c *model.Chapter) error {
+	if c == nil {
+		return fmt.Errorf("chapter is nil")
+	}
+
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		cdb := toChapterDB(c)
+		err := tx.
+			Clauses(clause.OnConflict{
+				Columns: []clause.Column{{Name: "id"}},
+				DoUpdates: clause.AssignmentColumns([]string{
+					"title",
+					"volume",
+					"number",
+					"state",
+					"updated_at",
+				}),
+			}).
+			Create(&cdb).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrForeignKeyViolated) {
+				return model.ErrMangaNotFound
+			}
+			if errors.Is(err, gorm.ErrDuplicatedKey) {
+				return model.ErrDuplicateChapter
+			}
+			return fmt.Errorf("upsert chapter: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func applyMangaFilter(q *gorm.DB, filter MangaFilter) *gorm.DB {
 	if len(filter.IDs) > 0 {
 		if len(filter.IDs) == 1 {

@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	ResourceManga a.Resource = "manga"
+	ResourceManga   a.Resource = "manga"
+	ResourceChapter a.Resource = "chapter"
 )
 
 const (
@@ -25,12 +26,21 @@ const (
 
 func AllPolicies() []a.Policy {
 	return a.Define(
+		// mangas
 		a.Grant(app.RoleAdmin).Regardless().On(ResourceManga).Can(a.ActionAny),
 
 		a.Grant(app.RoleGuest).Regardless().On(ResourceManga).Can(ActionRead, ActionList),
 
 		a.Grant(app.RoleUser).Regardless().On(ResourceManga).Can(ActionCreate, ActionRead, ActionList),
 		a.Grant(app.RoleUser).As(ScopeOwner).On(ResourceManga).Can(ActionUpdate, ActionDelete),
+
+		// chapters
+		a.Grant(app.RoleAdmin).Regardless().On(ResourceChapter).Can(a.ActionAny),
+
+		a.Grant(app.RoleGuest).Regardless().On(ResourceChapter).Can(ActionRead, ActionList),
+
+		a.Grant(app.RoleUser).Regardless().On(ResourceChapter).Can(ActionCreate, ActionRead, ActionList),
+		a.Grant(app.RoleUser).As(ScopeOwner).On(ResourceChapter).Can(ActionUpdate, ActionDelete),
 	)
 }
 
