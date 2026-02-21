@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mairuu/mp-api/internal/features/user/model"
 	"github.com/mairuu/mp-api/internal/features/user/service"
+	perrors "github.com/mairuu/mp-api/internal/platform/errors"
 	httptransport "github.com/mairuu/mp-api/internal/platform/transport/http"
 	"github.com/mairuu/mp-api/internal/platform/transport/http/middleware"
 )
@@ -89,6 +90,15 @@ func (h *UserHandler) handleErrors(ctx *gin.Context, err error) {
 	httptransport.ErrorResponse(ctx, code, err.Error())
 }
 
+var domainErrStatusMap = map[string]int{
+	model.ErrUserNotFound.Code:       http.StatusNotFound,
+	model.ErrUserAlreadyExists.Code:  http.StatusConflict,
+	model.ErrInvalidCredentials.Code: http.StatusUnauthorized,
+	model.ErrInvalidEmail.Code:       http.StatusBadRequest,
+	model.ErrInvalidUsername.Code:    http.StatusBadRequest,
+	model.ErrInvalidPassword.Code:    http.StatusBadRequest,
+}
+
 func (h *UserHandler) toHTTPStatusCode(err error) int {
 	var statusCoder interface {
 		Status() int
@@ -97,16 +107,12 @@ func (h *UserHandler) toHTTPStatusCode(err error) int {
 		return statusCoder.Status()
 	}
 
-	switch err {
-	case model.ErrUserNotFound:
-		return http.StatusNotFound
-	case model.ErrUserAlreadyExists:
-		return http.StatusConflict
-	case model.ErrInvalidCredentials:
-		return http.StatusUnauthorized
-	case model.ErrInvalidEmail, model.ErrInvalidUsername, model.ErrInvalidPassword:
-		return http.StatusBadRequest
-	default:
-		return http.StatusInternalServerError
+	var domainErr *perrors.DomainError
+	if errors.As(err, &domainErr) {
+		if code, ok := domainErrStatusMap[domainErr.Code]; ok {
+			return code
+		}
 	}
+
+	return http.StatusInternalServerError
 }

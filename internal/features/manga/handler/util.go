@@ -9,6 +9,7 @@ import (
 	"github.com/mairuu/mp-api/internal/app"
 	"github.com/mairuu/mp-api/internal/features/manga/model"
 	"github.com/mairuu/mp-api/internal/platform/authorization"
+	perrors "github.com/mairuu/mp-api/internal/platform/errors"
 	httptransport "github.com/mairuu/mp-api/internal/platform/transport/http"
 	"github.com/mairuu/mp-api/internal/platform/transport/http/middleware"
 )
@@ -55,6 +56,19 @@ func uuidFromPath(ctx *gin.Context, param string) (uuid.UUID, error) {
 	return id, nil
 }
 
+var domainErrStatusMap = map[string]int{
+	model.ErrCoverNotFound.Code:          http.StatusNotFound,
+	model.ErrChapterNotFound.Code:        http.StatusNotFound,
+	model.ErrMangaNotFound.Code:          http.StatusNotFound,
+	model.ErrInvalidTitle.Code:           http.StatusBadRequest,
+	model.ErrInvalidStatus.Code:          http.StatusBadRequest,
+	model.ErrInvalidVolume.Code:          http.StatusBadRequest,
+	model.ErrChapterAlreadyExists.Code:   http.StatusBadRequest,
+	model.ErrVolumeAlreadyExists.Code:    http.StatusBadRequest,
+	model.ErrPageNotFound.Code:           http.StatusBadRequest, // page not found can be caused by invalid staging object name or the staging object does not belong to the user
+	model.ErrUnsupportedImageFormat.Code: http.StatusBadRequest,
+}
+
 func toHTTPStatusCode(err error) int {
 	var statusCoder interface {
 		Status() int
@@ -63,21 +77,11 @@ func toHTTPStatusCode(err error) int {
 		return statusCoder.Status()
 	}
 
-	// map domain error
-	switch {
-	case
-		errors.Is(err, model.ErrCoverNotFound),
-		errors.Is(err, model.ErrChapterNotFound),
-		errors.Is(err, model.ErrMangaNotFound):
-		return http.StatusNotFound
-	case errors.Is(err, model.ErrInvalidTitle),
-		errors.Is(err, model.ErrInvalidStatus),
-		errors.Is(err, model.ErrInvalidVolume),
-		errors.Is(err, model.ErrChapterAlreadyExists),
-		errors.Is(err, model.ErrVolumeAlreadyExists),
-		errors.Is(err, model.ErrPageNotFound), // page not found can be caused by invalid staging object name or the staging object does not belong to the user
-		errors.Is(err, model.ErrUnsupportedImageFormat):
-		return http.StatusBadRequest
+	var domainErr *perrors.DomainError
+	if errors.As(err, &domainErr) {
+		if code, ok := domainErrStatusMap[domainErr.Code]; ok {
+			return code
+		}
 	}
 
 	return http.StatusInternalServerError
