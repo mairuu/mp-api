@@ -152,6 +152,15 @@ func (s *Service) UpdateChapter(ctx context.Context, ur *app.UserRole, id uuid.U
 		return nil, err
 	}
 
+	if len(r.Deleted) > 0 {
+		for _, p := range r.Deleted {
+			objectName := p.ObjectName
+			if err := s.publicBucket.Delete(ctx, objectName); err != nil {
+				s.log.WarnContext(ctx, "failed to delete page object", "object_name", objectName, "error", err)
+			}
+		}
+	}
+
 	dto := s.mapper.ToChapterDTO(c)
 	return &dto, nil
 }
