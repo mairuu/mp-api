@@ -19,9 +19,26 @@ func (s *Service) CreateManga(ctx context.Context, ur *app.UserRole, req CreateM
 		return nil, err
 	}
 
-	m, err := model.NewManga(ur.ID, req.Title, req.Synopsis, model.MangaStatus(req.Status))
+	covers := make([]model.CoverArt, len(req.Covers))
+	for i, c := range req.Covers {
+		covers[i] = model.CoverArt{
+			Volume:      c.Volume,
+			IsPrimary:   c.IsPrimary,
+			ObjectName:  c.ObjectName,
+			Description: c.Description,
+		}
+	}
+	m, err := model.NewManga(ur.ID, req.Title, req.Synopsis, model.MangaStatus(req.Status), covers)
 	if err != nil {
 		return nil, err
+	}
+
+	for i := range m.Covers {
+		permanentObjectName, err := s.processNewCoverArt(ctx, ur, m.ID, m.Covers[i].ObjectName)
+		if err != nil {
+			return nil, err
+		}
+		m.Covers[i].ObjectName = permanentObjectName
 	}
 
 	if err := s.repo.SaveManga(ctx, m); err != nil {
@@ -92,7 +109,7 @@ func (s *Service) UpdateManga(ctx context.Context, ur *app.UserRole, id uuid.UUI
 		return nil, err
 	}
 
-	r, err := s.processCoverArtChanges(m.Covers, req.CoverArts)
+	r, err := s.processCoverArtChanges(m.Covers, req.Covers)
 	if err != nil {
 		return nil, err
 	}
@@ -108,14 +125,12 @@ func (s *Service) UpdateManga(ctx context.Context, ur *app.UserRole, id uuid.UUI
 	}
 
 	// stage new cover arts
-	if len(r.Added) > 0 {
-		for _, c := range r.Added {
-			permanentObjectName, err := s.processNewCoverArt(ctx, ur, m.ID, c.ObjectName)
-			if err != nil {
-				return nil, err
-			}
-			c.ObjectName = permanentObjectName
+	for _, c := range r.Added {
+		permanentObjectName, err := s.processNewCoverArt(ctx, ur, m.ID, c.ObjectName)
+		if err != nil {
+			return nil, err
 		}
+		c.ObjectName = permanentObjectName
 	}
 
 	err = m.Updater().
@@ -130,14 +145,12 @@ func (s *Service) UpdateManga(ctx context.Context, ur *app.UserRole, id uuid.UUI
 	}
 
 	// delete removed cover arts from storage
-	if len(r.Deleted) > 0 {
-		for _, c := range r.Deleted {
-			for _, spec := range coverImageSpecs {
-				for _, suffix := range spec.suffixes {
-					objectName := c.ObjectName + suffix
-					if err := s.publicBucket.Delete(ctx, objectName); err != nil {
-						s.log.WarnContext(ctx, "failed to delete cover art object", "object_name", objectName, "error", err)
-					}
+	for _, c := range r.Deleted {
+		for _, spec := range coverImageSpecs {
+			for _, suffix := range spec.suffixes {
+				objectName := c.ObjectName + suffix
+				if err := s.publicBucket.Delete(ctx, objectName); err != nil {
+					s.log.WarnContext(ctx, "failed to delete cover art object", "object_name", objectName, "error", err)
 				}
 			}
 		}

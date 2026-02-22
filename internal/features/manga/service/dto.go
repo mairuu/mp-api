@@ -3,24 +3,27 @@ package service
 // manga
 
 type CreateMangaDTO struct {
-	Title    string `json:"title" binding:"required"`
-	Synopsis string `json:"synopsis"`
-	Status   string `json:"status" binding:"required"`
+	Title    string              `json:"title" binding:"required"`
+	Synopsis string              `json:"synopsis"`
+	Status   string              `json:"status" binding:"required"`
+	Covers   []CreateCoverArtDTO `json:"covers" binding:"dive"`
 }
 
-type UpdateMangaDTO struct {
-	Title     *string              `json:"title"`
-	Synopsis  *string              `json:"synopsis"`
-	Status    *string              `json:"status"`
-	CoverArts *[]UpdateCoverArtDTO `json:"covers"`
-}
-
-type UpdateCoverArtDTO struct {
+type CreateCoverArtDTO struct {
 	Volume      string `json:"volume"`
 	IsPrimary   bool   `json:"is_primary"`
 	ObjectName  string `json:"object_name" binding:"required"`
 	Description string `json:"description"`
 }
+
+type UpdateMangaDTO struct {
+	Title    *string              `json:"title"`
+	Synopsis *string              `json:"synopsis"`
+	Status   *string              `json:"status"`
+	Covers   *[]UpdateCoverArtDTO `json:"covers"`
+}
+
+type UpdateCoverArtDTO = CreateCoverArtDTO
 
 type MangaDTO struct {
 	ID        string        `json:"id"`

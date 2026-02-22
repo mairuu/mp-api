@@ -36,7 +36,7 @@ const (
 	MangaStatusCancelled MangaStatus = "cancelled"
 )
 
-func NewManga(ownerID uuid.UUID, title, synopsis string, status MangaStatus) (*Manga, error) {
+func NewManga(ownerID uuid.UUID, title, synopsis string, status MangaStatus, covers []CoverArt) (*Manga, error) {
 	if err := validateTitle(title); err != nil {
 		return nil, err
 	}
@@ -44,6 +44,9 @@ func NewManga(ownerID uuid.UUID, title, synopsis string, status MangaStatus) (*M
 		return nil, err
 	}
 	if err := validateStatus(status); err != nil {
+		return nil, err
+	}
+	if err := validateCoverArts(covers); err != nil {
 		return nil, err
 	}
 
@@ -55,6 +58,7 @@ func NewManga(ownerID uuid.UUID, title, synopsis string, status MangaStatus) (*M
 		Title:     title,
 		Synopsis:  synopsis,
 		Status:    status,
+		Covers:    covers,
 		UpdatedAt: now,
 		CreatedAt: now,
 	}, nil
@@ -154,29 +158,9 @@ func (u *MangaUpdater) CoverArts(covers []CoverArt) *MangaUpdater {
 	}
 
 	u.opts = append(u.opts, func(m *Manga) error {
-		foundPrimary := false
-		uniqueVolumes := make(map[string]bool)
-
-		for _, cover := range covers {
-			if cover.IsPrimary {
-				if foundPrimary {
-					return ErrMultiplePrimaryCovers
-				}
-				foundPrimary = true
-			}
-
-			if cover.Volume == "" {
-				continue
-			}
-			if err := validateVolume(&cover.Volume); err != nil {
-				return err
-			}
-			if uniqueVolumes[cover.Volume] {
-				return ErrVolumeAlreadyExists.WithArg("volume", cover.Volume)
-			}
-			uniqueVolumes[cover.Volume] = true
+		if err := validateCoverArts(covers); err != nil {
+			return err
 		}
-
 		m.Covers = covers
 		return nil
 	})
@@ -243,5 +227,32 @@ func validateVolume(volume *string) error {
 			WithMessage("must follow format: number, decimal, or number with letter suffix (e.g., 1, 1.5, 1a)").
 			WithArg("value", *volume)
 	}
+	return nil
+}
+
+func validateCoverArts(covers []CoverArt) error {
+	foundPrimary := false
+	uniqueVolumes := make(map[string]bool)
+
+	for _, cover := range covers {
+		if cover.IsPrimary {
+			if foundPrimary {
+				return ErrMultiplePrimaryCovers
+			}
+			foundPrimary = true
+		}
+
+		if cover.Volume == "" {
+			continue
+		}
+		if err := validateVolume(&cover.Volume); err != nil {
+			return err
+		}
+		if uniqueVolumes[cover.Volume] {
+			return ErrVolumeAlreadyExists.WithArg("volume", cover.Volume)
+		}
+		uniqueVolumes[cover.Volume] = true
+	}
+
 	return nil
 }
