@@ -64,9 +64,9 @@ func (mdb *MangaDB) toMangaModel() model.Manga {
 
 type CoverArtDB struct {
 	MangaID     uuid.UUID `gorm:"type:uuid;primaryKey"`
+	Order       int       `gorm:"type:int;primaryKey"`
 	IsPrimary   bool      `gorm:"type:boolean;not null;default:false"`
 	Volume      string    `gorm:"type:varchar(10);not null;primaryKey"`
-	Order       int       `gorm:"type:int;not null"` // internal, use to preserves the order of covers as they were added, used when determining primary cover if no cover is marked as primary
 	ObjectName  string    `gorm:"type:varchar(255);not null"`
 	Description string    `gorm:"type:text"`
 }

@@ -21,7 +21,7 @@ type Manga struct {
 
 type CoverArt struct {
 	IsPrimary   bool   // takes precedence over volume when determining primary cover
-	Volume      string // unique per manga
+	Volume      string // unique per manga, except for null/empty values which are allowed to have multiple entries
 	ObjectName  string
 	Description string
 }
@@ -79,8 +79,8 @@ func NewCoverArt(volume, objectName, description string, isPrimary bool) (*Cover
 		return nil, err
 	}
 	return &CoverArt{
-		IsPrimary:   isPrimary,
 		Volume:      volume,
+		IsPrimary:   isPrimary,
 		ObjectName:  objectName,
 		Description: description,
 	}, nil
@@ -165,6 +165,9 @@ func (u *MangaUpdater) CoverArts(covers []CoverArt) *MangaUpdater {
 				foundPrimary = true
 			}
 
+			if cover.Volume == "" {
+				continue
+			}
 			if err := validateVolume(&cover.Volume); err != nil {
 				return err
 			}
@@ -172,7 +175,6 @@ func (u *MangaUpdater) CoverArts(covers []CoverArt) *MangaUpdater {
 				return ErrVolumeAlreadyExists.WithArg("volume", cover.Volume)
 			}
 			uniqueVolumes[cover.Volume] = true
-
 		}
 
 		m.Covers = covers
@@ -227,6 +229,9 @@ var volumeRegex = `^(0|[1-9]\d*)(\.\d+)?([a-z]+)?$`
 
 func validateVolume(volume *string) error {
 	if volume == nil {
+		return nil
+	}
+	if *volume == "" {
 		return nil
 	}
 	matched, err := regexp.MatchString(volumeRegex, *volume)

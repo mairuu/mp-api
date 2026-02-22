@@ -4,7 +4,7 @@ package service
 
 type CreateMangaDTO struct {
 	Title    string `json:"title" binding:"required"`
-	Synopsis string `json:"synopsis" binding:""`
+	Synopsis string `json:"synopsis"`
 	Status   string `json:"status" binding:"required"`
 }
 
@@ -16,9 +16,9 @@ type UpdateMangaDTO struct {
 }
 
 type UpdateCoverArtDTO struct {
+	Volume      string `json:"volume"`
 	IsPrimary   bool   `json:"is_primary"`
 	ObjectName  string `json:"object_name" binding:"required"`
-	Volume      string `json:"volume" binding:"required"`
 	Description string `json:"description"`
 }
 
@@ -33,6 +33,7 @@ type MangaDTO struct {
 
 type CoverArtDTO struct {
 	Volume      string `json:"volume"`
+	IsPrimary   bool   `json:"is_primary"`
 	Description string `json:"description"`
 	ObjectName  string `json:"object_name"`
 }

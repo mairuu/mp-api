@@ -183,7 +183,10 @@ func (s *Service) processCoverArtChanges(existing []model.CoverArt, dtos *[]Upda
 
 	differ := collections.IdentifiableDiffer[string, model.CoverArt]{
 		GetKey: func(c *model.CoverArt) string {
-			return c.Volume
+			if c.Volume != "" {
+				return c.Volume
+			}
+			return c.ObjectName
 		},
 		AddItem: func(existings []model.CoverArt, adding *model.CoverArt) (added *model.CoverArt, toUpdate *model.CoverArt, toDelete *model.CoverArt, err error) {
 			// check if this object already exists with a different volume (volume rename scenario)
@@ -205,6 +208,7 @@ func (s *Service) processCoverArtChanges(existing []model.CoverArt, dtos *[]Upda
 
 			// otherwise, it's a simple update (description might have changed)
 			updated := *existing
+			updated.IsPrimary = updating.IsPrimary
 			updated.Description = updating.Description
 			return &updated, nil, nil, nil
 		},

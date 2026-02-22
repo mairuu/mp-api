@@ -1,6 +1,7 @@
 package service
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/mairuu/mp-api/internal/features/manga/model"
@@ -26,6 +27,35 @@ func TestProcessCoverArtChanges(t *testing.T) {
 
 		assert.Len(t, result.Updated, 0)
 		assert.Len(t, result.Deleted, 0)
+	})
+
+	t.Run("empty volumes", func(t *testing.T) {
+		existing := []model.CoverArt{
+			{Volume: "", ObjectName: "perma-obj-1", Description: "existing cover with empty volume"},
+			{Volume: "", ObjectName: "perma-obj-2", Description: "deleting cover with empty volume"},
+		}
+		dtos := &[]UpdateCoverArtDTO{
+			{Volume: "", ObjectName: "perma-obj-1", Description: "existing cover with empty volume"},
+			{Volume: "", ObjectName: "staging-obj-3", Description: "cover with empty volume"},
+			{Volume: "", ObjectName: "staging-obj-4", Description: "another cover with empty volume"},
+		}
+
+		result, err := s.processCoverArtChanges(existing, dtos)
+		require.NoError(t, err)
+
+		assert.Len(t, result.Added, 2)
+		assert.True(t, slices.ContainsFunc(result.Added, func(c *model.CoverArt) bool {
+			return c.ObjectName == "staging-obj-3"
+		}))
+		assert.True(t, slices.ContainsFunc(result.Added, func(c *model.CoverArt) bool {
+			return c.ObjectName == "staging-obj-4"
+		}))
+
+		assert.Len(t, result.Updated, 1)
+		assert.Equal(t, "perma-obj-1", result.Updated[0].ObjectName)
+
+		assert.Len(t, result.Deleted, 1)
+		assert.Equal(t, "perma-obj-2", result.Deleted[0].ObjectName)
 	})
 
 	t.Run("replace single (obj changed)", func(t *testing.T) {
@@ -89,6 +119,7 @@ func TestProcessCoverArtChanges(t *testing.T) {
 
 	t.Run("mixed operations", func(t *testing.T) {
 		existing := []model.CoverArt{
+			{Volume: "", ObjectName: "perma-obj-0", Description: "Cover with empty volume"},
 			{Volume: "1", ObjectName: "perma-obj-1", Description: "Cover 1"},
 			{Volume: "2", ObjectName: "perma-obj-2", Description: "Cover 2"},
 			{Volume: "3", ObjectName: "perma-obj-6", Description: "Cover 3"},
@@ -136,8 +167,13 @@ func TestProcessCoverArtChanges(t *testing.T) {
 		assert.Equal(t, "perma-obj-6", updatedVol3.ObjectName)
 
 		// deleted: old object for volume 2
-		assert.Len(t, result.Deleted, 1)
-		assert.Equal(t, "perma-obj-2", result.Deleted[0].ObjectName)
+		assert.Len(t, result.Deleted, 2)
+		assert.True(t, slices.ContainsFunc(result.Deleted, func(c *model.CoverArt) bool {
+			return c.ObjectName == "perma-obj-0"
+		}))
+		assert.True(t, slices.ContainsFunc(result.Deleted, func(c *model.CoverArt) bool {
+			return c.ObjectName == "perma-obj-2"
+		}))
 	})
 
 	t.Run("nil dtos returns existing as updated", func(t *testing.T) {

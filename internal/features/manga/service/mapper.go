@@ -56,6 +56,7 @@ func (mp *mapper) ToMangaDTO(m *model.Manga) MangaDTO {
 	for i := range sorted {
 		covers = append(covers, CoverArtDTO{
 			Volume:      sorted[i].Volume,
+			IsPrimary:   sorted[i].IsPrimary,
 			Description: sorted[i].Description,
 			ObjectName:  sorted[i].ObjectName,
 		})

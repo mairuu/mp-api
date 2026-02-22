@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mairuu/mp-api/internal/features/manga/model"
-	"github.com/mairuu/mp-api/internal/platform/collections"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -47,48 +46,16 @@ func (r *GormRepository) SaveManga(ctx context.Context, m *model.Manga) error {
 		}
 
 		// sync cover arts
-		// could've been done by delete and re-insert; but we diff just for fun
-
-		var existingCovers []CoverArtDB
-		err = tx.
-			Model(&CoverArtDB{}).
-			Where("manga_id = ?", m.ID).
-			Find(&existingCovers).Error
+		// delete and re-insert
+		err = tx.Where("manga_id = ?", m.ID).Delete(&CoverArtDB{}).Error
 		if err != nil {
-			return fmt.Errorf("fetch existing cover arts: %w", err)
+			return fmt.Errorf("delete existing cover arts: %w", err)
 		}
 
-		differ := collections.IdentifiableDiffer[string, CoverArtDB]{
-			GetKey: func(ca *CoverArtDB) string {
-				return ca.Volume
-			},
-		}
-
-		result, err := differ.Diff(existingCovers, mdb.Covers)
-		if err != nil {
-			return fmt.Errorf("diff cover arts: %w", err)
-		}
-
-		toUpserts := result.Merged()
-		if len(toUpserts) > 0 {
-			err = tx.
-				Clauses(clause.OnConflict{
-					Columns: []clause.Column{{Name: "manga_id"}, {Name: "volume"}},
-					DoUpdates: clause.AssignmentColumns([]string{
-						"object_name",
-						"description",
-					}),
-				}).
-				Create(&toUpserts).Error
+		if len(mdb.Covers) > 0 {
+			err = tx.CreateInBatches(&mdb.Covers, 100).Error
 			if err != nil {
-				return fmt.Errorf("upsert cover arts: %w", err)
-			}
-		}
-
-		if len(result.Deleted) > 0 {
-			err := tx.Delete(result.Deleted).Error
-			if err != nil {
-				return fmt.Errorf("delete removed cover arts: %w", err)
+				return fmt.Errorf("insert cover arts: %w", err)
 			}
 		}
 
