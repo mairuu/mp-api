@@ -16,9 +16,15 @@ func (_ *mapper) ToMangaSummaryDTO(m *repo.MangaSummary) MangaSummaryDTO {
 		return MangaSummaryDTO{}
 	}
 
+	var coverURL *string
+	if m.CoverObjecrtName != nil {
+		coverURL = m.CoverObjecrtName
+	}
+
 	return MangaSummaryDTO{
-		ID:    m.ID.String(),
-		Title: m.Title,
+		ID:       m.ID.String(),
+		Title:    m.Title,
+		CoverURL: coverURL,
 	}
 }
 

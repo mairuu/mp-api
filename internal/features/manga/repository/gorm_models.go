@@ -26,8 +26,10 @@ func (m *MangaDB) TableName() string {
 
 func toMangaDB(m *model.Manga) MangaDB {
 	covers := make([]CoverArtDB, 0, len(m.Covers))
-	for _, c := range m.Covers {
-		covers = append(covers, toCoverArtDB(&c, m.ID))
+	for i, c := range m.Covers {
+		cdb := toCoverArtDB(&c, m.ID)
+		cdb.Order = i
+		covers = append(covers, cdb)
 	}
 
 	return MangaDB{
@@ -62,7 +64,9 @@ func (mdb *MangaDB) toMangaModel() model.Manga {
 
 type CoverArtDB struct {
 	MangaID     uuid.UUID `gorm:"type:uuid;primaryKey"`
+	IsPrimary   bool      `gorm:"type:boolean;not null;default:false"`
 	Volume      string    `gorm:"type:varchar(10);not null;primaryKey"`
+	Order       int       `gorm:"type:int;not null"` // internal, use to preserves the order of covers as they were added, used when determining primary cover if no cover is marked as primary
 	ObjectName  string    `gorm:"type:varchar(255);not null"`
 	Description string    `gorm:"type:text"`
 }
@@ -74,6 +78,7 @@ func (c *CoverArtDB) TableName() string {
 func toCoverArtDB(cover *model.CoverArt, mangaID uuid.UUID) CoverArtDB {
 	return CoverArtDB{
 		MangaID:     mangaID,
+		IsPrimary:   cover.IsPrimary,
 		Volume:      cover.Volume,
 		ObjectName:  cover.ObjectName,
 		Description: cover.Description,
@@ -82,6 +87,7 @@ func toCoverArtDB(cover *model.CoverArt, mangaID uuid.UUID) CoverArtDB {
 
 func (cdb *CoverArtDB) toCoverArtModel() model.CoverArt {
 	return model.CoverArt{
+		IsPrimary:   cdb.IsPrimary,
 		Volume:      cdb.Volume,
 		ObjectName:  cdb.ObjectName,
 		Description: cdb.Description,

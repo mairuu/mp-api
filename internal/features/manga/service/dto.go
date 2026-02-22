@@ -16,6 +16,7 @@ type UpdateMangaDTO struct {
 }
 
 type UpdateCoverArtDTO struct {
+	IsPrimary   bool   `json:"is_primary"`
 	ObjectName  string `json:"object_name" binding:"required"`
 	Volume      string `json:"volume" binding:"required"`
 	Description string `json:"description"`
@@ -37,8 +38,9 @@ type CoverArtDTO struct {
 }
 
 type MangaSummaryDTO struct {
-	ID    string `json:"id"`
-	Title string `json:"title"`
+	ID       string  `json:"id"`
+	Title    string  `json:"title"`
+	CoverURL *string `json:"cover_url"`
 }
 
 // chapter

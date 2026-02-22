@@ -34,7 +34,6 @@ func (r *GormRepository) SaveManga(ctx context.Context, m *model.Manga) error {
 					"title",
 					"synopsis",
 					"status",
-					"state",
 					"updated_at",
 				}),
 			}).
@@ -141,20 +140,53 @@ func (r *GormRepository) CountMangas(ctx context.Context, filter MangaFilter) (i
 }
 
 func (r *GormRepository) ListMangas(ctx context.Context, filter MangaFilter, pagging Pagging, ordering []Ordering) ([]MangaSummary, error) {
+	ms := make([]struct {
+		ID    uuid.UUID
+		Title string
+	}, 0)
+
 	q := r.db.WithContext(ctx).
 		Model(&MangaDB{}).
 		Select("id", "title")
 	q = applyMangaFilter(q, filter)
 	q = applyPagging(q, pagging)
 	q = applyOrderings(q, ordering)
-
-	var mangas []MangaSummary
-	if err := q.Scan(&mangas).Error; err != nil {
+	if err := q.Scan(&ms).Error; err != nil {
 		return nil, fmt.Errorf("list mangas: %w", err)
 	}
 
-	if mangas == nil {
-		mangas = []MangaSummary{}
+	ids := make([]uuid.UUID, 0, len(ms))
+	for i := range ms {
+		ids = append(ids, ms[i].ID)
+	}
+
+	covers, err := gorm.G[CoverArtDB](r.db).
+		Select("DISTINCT ON (manga_id) manga_id, object_name, volume").
+		Where("manga_id in ?", ids).
+		Order(`manga_id, is_primary DESC, "order" DESC`).
+		Find(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("fetch cover arts for manga summaries: %w", err)
+	}
+
+	coverMap := make(map[uuid.UUID]*CoverArtDB)
+	for i := range covers {
+		c := &covers[i]
+		if _, exists := coverMap[c.MangaID]; !exists {
+			coverMap[c.MangaID] = c
+		}
+	}
+
+	mangas := make([]MangaSummary, 0, len(ms))
+	for i, m := range ms {
+		mangas = append(mangas, MangaSummary{
+			ID:    m.ID,
+			Title: m.Title,
+		})
+		if cover, exists := coverMap[m.ID]; exists {
+			mangas[i].CoverVolume = &cover.Volume
+			mangas[i].CoverObjecrtName = &cover.ObjectName
+		}
 	}
 
 	return mangas, nil

@@ -20,6 +20,7 @@ type Manga struct {
 }
 
 type CoverArt struct {
+	IsPrimary   bool   // takes precedence over volume when determining primary cover
 	Volume      string // unique per manga
 	ObjectName  string
 	Description string
@@ -59,11 +60,26 @@ func NewManga(ownerID uuid.UUID, title, synopsis string, status MangaStatus) (*M
 	}, nil
 }
 
-func NewCoverArt(volume, objectName, description string) (*CoverArt, error) {
+func (m *Manga) GetPrimaryCover() *CoverArt {
+	for i := range m.Covers {
+		if m.Covers[i].IsPrimary {
+			return &m.Covers[i]
+		}
+	}
+	// if no primary cover is found
+	// use the latest volume as the primary cover
+	if len(m.Covers) > 0 {
+		return &m.Covers[len(m.Covers)-1]
+	}
+	return nil
+}
+
+func NewCoverArt(volume, objectName, description string, isPrimary bool) (*CoverArt, error) {
 	if err := validateVolume(&volume); err != nil {
 		return nil, err
 	}
 	return &CoverArt{
+		IsPrimary:   isPrimary,
 		Volume:      volume,
 		ObjectName:  objectName,
 		Description: description,
@@ -138,8 +154,17 @@ func (u *MangaUpdater) CoverArts(covers []CoverArt) *MangaUpdater {
 	}
 
 	u.opts = append(u.opts, func(m *Manga) error {
+		foundPrimary := false
 		uniqueVolumes := make(map[string]bool)
+
 		for _, cover := range covers {
+			if cover.IsPrimary {
+				if foundPrimary {
+					return ErrMultiplePrimaryCovers
+				}
+				foundPrimary = true
+			}
+
 			if err := validateVolume(&cover.Volume); err != nil {
 				return err
 			}
@@ -147,6 +172,7 @@ func (u *MangaUpdater) CoverArts(covers []CoverArt) *MangaUpdater {
 				return ErrVolumeAlreadyExists.WithArg("volume", cover.Volume)
 			}
 			uniqueVolumes[cover.Volume] = true
+
 		}
 
 		m.Covers = covers

@@ -33,7 +33,7 @@ func (s *Service) CreateManga(ctx context.Context, ur *app.UserRole, req CreateM
 }
 
 func (s *Service) ListMangas(ctx context.Context, ur *app.UserRole, q *MangaListQuery) (*PagedDTO, error) {
-	err := s.enforce(ur, model.ResourceManga, model.ActionCreate, nil)
+	err := s.enforce(ur, model.ResourceManga, model.ActionRead, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +174,7 @@ func (s *Service) processCoverArtChanges(existing []model.CoverArt, dtos *[]Upda
 	// convert
 	newCovers := make([]model.CoverArt, 0, len(*dtos))
 	for _, dto := range *dtos {
-		cv, err := model.NewCoverArt(dto.Volume, dto.ObjectName, dto.Description)
+		cv, err := model.NewCoverArt(dto.Volume, dto.ObjectName, dto.Description, dto.IsPrimary)
 		if err != nil {
 			return nil, err
 		}

@@ -12,6 +12,7 @@ var (
 	ErrChapterAlreadyExists   = errors.New("chapter_already_exists")
 	ErrInvalidChapterNumber   = errors.New("invalid_chapter_number")
 	ErrVolumeAlreadyExists    = errors.New("volume_already_exists")
+	ErrMultiplePrimaryCovers  = errors.New("multiple_primary_covers")
 	ErrCoverNotFound          = errors.New("cover_not_found")
 	ErrUnsupportedImageFormat = errors.New("unsupported_image_format")
 	ErrEmptyPages             = errors.New("empty_pages")
