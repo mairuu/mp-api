@@ -14,7 +14,6 @@ type Manga struct {
 	Title     string
 	Synopsis  string
 	Status    MangaStatus
-	State     MangaState
 	Covers    []CoverArt
 	UpdatedAt time.Time
 	CreatedAt time.Time
@@ -36,13 +35,6 @@ const (
 	MangaStatusCancelled MangaStatus = "cancelled"
 )
 
-type MangaState string
-
-const (
-	MangaStateDraft   MangaState = "draft"
-	MangaStatePublish MangaState = "published"
-)
-
 func NewManga(ownerID uuid.UUID, title, synopsis string, status MangaStatus) (*Manga, error) {
 	if err := validateTitle(title); err != nil {
 		return nil, err
@@ -62,7 +54,6 @@ func NewManga(ownerID uuid.UUID, title, synopsis string, status MangaStatus) (*M
 		Title:     title,
 		Synopsis:  synopsis,
 		Status:    status,
-		State:     MangaStateDraft,
 		UpdatedAt: now,
 		CreatedAt: now,
 	}, nil
@@ -141,19 +132,6 @@ func (u *MangaUpdater) Status(status *MangaStatus) *MangaUpdater {
 	return u
 }
 
-func (u *MangaUpdater) State(state *MangaState) *MangaUpdater {
-	if state == nil {
-		return u
-	}
-
-	u.opts = append(u.opts, func(m *Manga) error {
-		m.State = *state
-		return nil
-	})
-
-	return u
-}
-
 func (u *MangaUpdater) CoverArts(covers []CoverArt) *MangaUpdater {
 	if covers == nil {
 		return u
@@ -195,15 +173,6 @@ func (u *MangaUpdater) Apply() error {
 func (status MangaStatus) IsValid() bool {
 	switch status {
 	case MangaStatusDraft, MangaStatusOngoing, MangaStatusCompleted, MangaStatusHiatus, MangaStatusCancelled:
-		return true
-	default:
-		return false
-	}
-}
-
-func (state MangaState) IsValid() bool {
-	switch state {
-	case MangaStateDraft, MangaStatePublish:
 		return true
 	default:
 		return false

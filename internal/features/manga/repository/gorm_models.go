@@ -15,7 +15,6 @@ type MangaDB struct {
 	Title     string       `gorm:"type:varchar(255);not null;unique;index:idx_title_search"`
 	Synopsis  string       `gorm:"type:text"`
 	Status    string       `gorm:"type:varchar(10);not null;index:idx_status"`
-	State     string       `gorm:"type:varchar(10);not null;index:idx_state"`
 	Covers    []CoverArtDB `gorm:"foreignKey:MangaID;constraint:OnDelete:CASCADE;"`
 	CreatedAt time.Time    `gorm:"index:idx_created_at"`
 	UpdatedAt time.Time
@@ -37,7 +36,6 @@ func toMangaDB(m *model.Manga) MangaDB {
 		Title:     m.Title,
 		Synopsis:  m.Synopsis,
 		Status:    string(m.Status),
-		State:     string(m.State),
 		Covers:    covers,
 		CreatedAt: m.CreatedAt,
 		UpdatedAt: m.UpdatedAt,
@@ -56,7 +54,6 @@ func (mdb *MangaDB) toMangaModel() model.Manga {
 		Title:     mdb.Title,
 		Synopsis:  mdb.Synopsis,
 		Status:    model.MangaStatus(mdb.Status),
-		State:     model.MangaState(mdb.State),
 		Covers:    covers,
 		CreatedAt: mdb.CreatedAt,
 		UpdatedAt: mdb.UpdatedAt,

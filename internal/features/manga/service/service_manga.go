@@ -43,7 +43,6 @@ func (s *Service) ListMangas(ctx context.Context, ur *app.UserRole, q *MangaList
 	}
 
 	filter := q.ToMangaFilter()
-	filter.State = ptr(string(model.MangaStatePublish)) // only list active mangas
 	pagging := q.ToPaging()
 	ordering := q.ToOrdering([]string{"title", "created_at", "updated_at"})
 
@@ -313,35 +312,6 @@ func (s *Service) DeleteManga(ctx context.Context, ur *app.UserRole, id uuid.UUI
 	}
 
 	return nil
-}
-
-func (s *Service) PublishManga(ctx context.Context, ur *app.UserRole, id uuid.UUID) (*MangaDTO, error) {
-	m, err := s.repo.GetMangaByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.enforce(ur, model.ResourceManga, model.ActionPublish, m)
-	if err != nil {
-		return nil, err
-	}
-
-	ms := model.MangaStatePublish
-	// for now, publishing just update the manga state to published
-	err = m.Updater().
-		State(&ms).
-		Apply()
-
-	if err != nil {
-		return nil, err
-	}
-
-	if err := s.repo.SaveManga(ctx, m); err != nil {
-		return nil, err
-	}
-
-	dto := s.mapper.ToMangaDTO(m)
-	return &dto, nil
 }
 
 func (s *Service) enforce(ur *app.UserRole, resource authorization.Resource, action authorization.Action, target authorization.ScopeResolvable) error {

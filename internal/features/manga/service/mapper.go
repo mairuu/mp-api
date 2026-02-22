@@ -60,7 +60,6 @@ func (mp *mapper) ToMangaDTO(m *model.Manga) MangaDTO {
 		Title:     m.Title,
 		Synopsis:  m.Synopsis,
 		Status:    string(m.Status),
-		State:     string(m.State),
 		CoverArts: covers,
 	}
 }
