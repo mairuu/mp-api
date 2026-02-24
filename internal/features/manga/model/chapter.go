@@ -11,9 +11,9 @@ import (
 type Chapter struct {
 	ID        uuid.UUID
 	MangaID   uuid.UUID
-	Title     string
-	Volume    *string
 	Number    string
+	Title     *string
+	Volume    *string
 	State     ChapterState
 	Pages     []Page
 	UpdatedAt time.Time
@@ -33,7 +33,7 @@ type Page struct {
 	ObjectName string
 }
 
-func NewChapter(mangaID uuid.UUID, title, number string, volume *string, pages []Page) (*Chapter, error) {
+func NewChapter(mangaID uuid.UUID, number string, title, volume *string, pages []Page) (*Chapter, error) {
 	if err := validateTitle(title); err != nil {
 		return nil, err
 	}
@@ -77,10 +77,10 @@ func (u *ChapterUpdater) Title(title *string) *ChapterUpdater {
 		return u
 	}
 	u.opts = append(u.opts, func(c *Chapter) error {
-		if err := validateTitle(*title); err != nil {
+		if err := validateTitle(title); err != nil {
 			return err
 		}
-		c.Title = *title
+		c.Title = title
 		return nil
 	})
 	return u

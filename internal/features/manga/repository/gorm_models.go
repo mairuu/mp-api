@@ -100,7 +100,7 @@ type ChapterDB struct {
 	ID        uuid.UUID `gorm:"type:uuid;primaryKey"`
 	MangaID   uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_manga_number"`
 	Manga     *MangaDB  `gorm:"foreignKey:MangaID;constraint:OnDelete:CASCADE;"`
-	Title     string    `gorm:"type:varchar(255)"`
+	Title     *string   `gorm:"type:varchar(255)"`
 	Volume    *string   `gorm:"type:varchar(10)"`
 	Number    string    `gorm:"type:varchar(10);not null;uniqueIndex:idx_manga_number"`
 	State     string    `gorm:"type:varchar(10);not null;index:idx_state"`

@@ -37,7 +37,7 @@ const (
 )
 
 func NewManga(ownerID uuid.UUID, title, synopsis string, status MangaStatus, covers []CoverArt) (*Manga, error) {
-	if err := validateTitle(title); err != nil {
+	if err := validateTitle(&title); err != nil {
 		return nil, err
 	}
 	if err := validateSynopsis(synopsis); err != nil {
@@ -108,7 +108,7 @@ func (u *MangaUpdater) Title(title *string) *MangaUpdater {
 
 	u.opts = append(u.opts, func(m *Manga) error {
 		t := strings.TrimSpace(*title)
-		if err := validateTitle(t); err != nil {
+		if err := validateTitle(&t); err != nil {
 			return err
 		}
 		m.Title = t
@@ -191,8 +191,11 @@ func (status MangaStatus) IsValid() bool {
 	}
 }
 
-func validateTitle(title string) error {
-	if title == "" {
+func validateTitle(title *string) error {
+	if title == nil {
+		return nil
+	}
+	if *title == "" {
 		return ErrInvalidTitle.WithMessage("title cannot be empty")
 	}
 	return nil

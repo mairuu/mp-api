@@ -51,9 +51,9 @@ type MangaSummaryDTO struct {
 
 type CreateChapterDTO struct {
 	MangaID string   `json:"manga_id" binding:"required,uuid"`
-	Title   string   `json:"title" binding:"required"`
-	Volume  *string  `json:"volume" binding:""`
 	Number  string   `json:"number" binding:"required"`
+	Title   *string  `json:"title" binding:""`
+	Volume  *string  `json:"volume" binding:""`
 	Pages   []string `json:"pages" binding:"required,dive"`
 }
 

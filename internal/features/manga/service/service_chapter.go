@@ -34,7 +34,7 @@ func (s *Service) CreateChapter(ctx context.Context, ur *app.UserRole, req Creat
 			Height:     1,
 		}
 	}
-	c, err := model.NewChapter(m.ID, req.Title, req.Number, req.Volume, pages)
+	c, err := model.NewChapter(m.ID, req.Number, req.Title, req.Volume, pages)
 	if err != nil {
 		return nil, err
 	}
