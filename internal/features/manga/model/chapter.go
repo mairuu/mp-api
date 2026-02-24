@@ -33,7 +33,7 @@ type Page struct {
 	ObjectName string
 }
 
-func NewChapter(mangaID uuid.UUID, title, number string, volume *string) (*Chapter, error) {
+func NewChapter(mangaID uuid.UUID, title, number string, volume *string, pages []Page) (*Chapter, error) {
 	if err := validateTitle(title); err != nil {
 		return nil, err
 	}
@@ -43,6 +43,10 @@ func NewChapter(mangaID uuid.UUID, title, number string, volume *string) (*Chapt
 	if err := validateNumber(number); err != nil {
 		return nil, err
 	}
+	if err := validatePages(pages); err != nil {
+		return nil, err
+	}
+
 	now := time.Now()
 	return &Chapter{
 		ID:        uuid.New(),
@@ -51,6 +55,7 @@ func NewChapter(mangaID uuid.UUID, title, number string, volume *string) (*Chapt
 		Volume:    volume,
 		Number:    number,
 		State:     ChapterStateDraft,
+		Pages:     pages,
 		UpdatedAt: now,
 		CreatedAt: now,
 	}, nil

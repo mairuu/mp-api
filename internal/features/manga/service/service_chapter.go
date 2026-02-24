@@ -21,15 +21,32 @@ func (s *Service) CreateChapter(ctx context.Context, ur *app.UserRole, req Creat
 		return nil, err
 	}
 
-	// pass manga as target for scope resolution, so that owner can create chapters for their manga
 	err = s.enforce(ur, model.ResourceChapter, model.ActionCreate, m)
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := model.NewChapter(m.ID, req.Title, req.Number, req.Volume)
+	pages := make([]model.Page, len(req.Pages))
+	for i, objName := range req.Pages {
+		pages[i] = model.Page{
+			ObjectName: objName,
+			Width:      1,
+			Height:     1,
+		}
+	}
+	c, err := model.NewChapter(m.ID, req.Title, req.Number, req.Volume, pages)
 	if err != nil {
 		return nil, err
+	}
+
+	for i := range c.Pages {
+		img, err := s.processNewChapterPage(ctx, ur, c.ID, c.Pages[i].ObjectName)
+		if err != nil {
+			return nil, err
+		}
+		c.Pages[i].Width = img.width
+		c.Pages[i].Height = img.height
+		c.Pages[i].ObjectName = img.objectName
 	}
 
 	err = s.repo.SaveChapter(ctx, c)
