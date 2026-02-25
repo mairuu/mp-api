@@ -27,7 +27,17 @@ func NewService(enforcer *authorization.Enforcer, bucket storage.Bucket) *Servic
 	}
 }
 
-func (s *Service) UploadFiles(ctx context.Context, ur *app.UserRole, files []*multipart.FileHeader) (*UploadDTO, error) {
+func (s *Service) UploadFiles(ctx context.Context, ur *app.UserRole, files []*multipart.FileHeader, refIDs []string) (*UploadDTO, error) {
+	if len(files) == 0 {
+		return nil, model.ErrFileRequired.
+			WithMessage("at least one file is required")
+	}
+
+	if len(refIDs) > 0 && len(refIDs) != len(files) {
+		return nil, model.ErrRefIDCountMismatch.
+			WithMessage("number of ref_ids must match number of files")
+	}
+
 	err := s.enforce(ur, model.ActionUpload, nil)
 	if err != nil {
 		return nil, err
@@ -35,10 +45,10 @@ func (s *Service) UploadFiles(ctx context.Context, ur *app.UserRole, files []*mu
 
 	// todo: quota check, e.g. max file size, max number of files, etc.
 
-	var acceptedFiles []AcceptedFile
-	var rejectedFiles []RejectedFile
+	acceptedFiles := make([]AcceptedFile, 0)
+	rejectedFiles := make([]RejectedFile, 0)
 
-	for _, file := range files {
+	for i, file := range files {
 		opts := &storage.UploadOptions{
 			MetaData: map[string]string{
 				"user_id": ur.ID.String(),
@@ -47,28 +57,40 @@ func (s *Service) UploadFiles(ctx context.Context, ur *app.UserRole, files []*mu
 
 		f, err := file.Open()
 		if err != nil {
-			rejectedFiles = append(rejectedFiles, RejectedFile{
+			rf := RejectedFile{
 				OriginalFileName: file.Filename,
-				Error:            err.Error(),
-			})
+				Error:            err.Error(), // todo: do not expose internal error message
+			}
+			if len(refIDs) > 0 {
+				rf.RefID = &refIDs[i]
+			}
+			rejectedFiles = append(rejectedFiles, rf)
 			continue
 		}
 
 		objectName := uuid.New().String()
 		if err := s.bucket.Upload(ctx, objectName, f, opts); err != nil {
 			f.Close()
-			rejectedFiles = append(rejectedFiles, RejectedFile{
+			rf := RejectedFile{
 				OriginalFileName: file.Filename,
-				Error:            err.Error(),
-			})
+				Error:            err.Error(), // todo: do not expose internal error message
+			}
+			if len(refIDs) > 0 {
+				rf.RefID = &refIDs[i]
+			}
+			rejectedFiles = append(rejectedFiles, rf)
 			continue
 		}
 		f.Close()
 
-		acceptedFiles = append(acceptedFiles, AcceptedFile{
+		af := AcceptedFile{
 			OriginalFileName: file.Filename,
 			ObjectName:       objectName,
-		})
+		}
+		if len(refIDs) > 0 {
+			af.RefID = &refIDs[i]
+		}
+		acceptedFiles = append(acceptedFiles, af)
 	}
 
 	return &UploadDTO{

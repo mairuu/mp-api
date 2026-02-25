@@ -44,13 +44,10 @@ func (h *BucketHandler) Upload(ctx *gin.Context) {
 		return
 	}
 
-	files := form.File["files"]
-	if len(files) == 0 {
-		h.handleError(ctx, httptransport.NewHandlerError(http.StatusBadRequest, "file is required", nil))
-		return
-	}
+	files := form.File["files[]"]
+	refIDs := form.Value["ref_ids[]"]
 
-	result, err := h.service.UploadFiles(ctx.Request.Context(), ur, files)
+	result, err := h.service.UploadFiles(ctx.Request.Context(), ur, files, refIDs)
 	if err != nil {
 		h.handleError(ctx, err)
 		return

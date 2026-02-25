@@ -42,9 +42,9 @@ type CoverArtDTO struct {
 }
 
 type MangaSummaryDTO struct {
-	ID       string  `json:"id"`
-	Title    string  `json:"title"`
-	CoverURL *string `json:"cover_url"`
+	ID              string  `json:"id"`
+	Title           string  `json:"title"`
+	CoverObjectName *string `json:"cover_object_name"`
 }
 
 // chapter
@@ -67,9 +67,9 @@ type UpdateChapterDTO struct {
 type ChapterDTO struct {
 	ID      string    `json:"id"`
 	MangaID string    `json:"manga_id"`
-	Title   string    `json:"title"`
-	Volume  *string   `json:"volume"`
 	Number  string    `json:"number"`
+	Title   *string   `json:"title"`
+	Volume  *string   `json:"volume"`
 	Pages   []PageDTO `json:"pages"`
 }
 

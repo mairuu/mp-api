@@ -8,7 +8,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mairuu/mp-api/internal/app"
+	"github.com/mairuu/mp-api/internal/features/bucket/model"
 	"github.com/mairuu/mp-api/internal/platform/authorization"
+	perrors "github.com/mairuu/mp-api/internal/platform/errors"
 	"github.com/mairuu/mp-api/internal/platform/storage"
 	"github.com/mairuu/mp-api/internal/platform/transport/http/middleware"
 )
@@ -25,6 +27,12 @@ func userRoleFromContext(ctx *gin.Context) *app.UserRole {
 	return (&app.UserRole{ID: userID, Role: authorization.Role(role)}).OrGuest()
 }
 
+var domainErrStatusMap = map[string]int{
+	storage.ErrObjectNotFound.Error():   http.StatusNotFound,
+	model.ErrFileRequired.Error():       http.StatusBadRequest,
+	model.ErrRefIDCountMismatch.Error(): http.StatusBadRequest,
+}
+
 func toHTTPStatusCode(err error) int {
 	var statusCoder interface {
 		Status() int
@@ -33,9 +41,11 @@ func toHTTPStatusCode(err error) int {
 		return statusCoder.Status()
 	}
 
-	switch {
-	case errors.Is(err, storage.ErrObjectNotFound):
-		return http.StatusNotFound
+	var domainErr *perrors.DomainError
+	if errors.As(err, &domainErr) {
+		if code, ok := domainErrStatusMap[domainErr.Code]; ok {
+			return code
+		}
 	}
 
 	return http.StatusInternalServerError

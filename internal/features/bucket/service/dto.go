@@ -6,11 +6,13 @@ type UploadDTO struct {
 }
 
 type AcceptedFile struct {
-	OriginalFileName string `json:"original_file_name"`
-	ObjectName       string `json:"object_name"`
+	RefID            *string `json:"ref_id,omitempty"`
+	OriginalFileName string  `json:"original_file_name"`
+	ObjectName       string  `json:"object_name"`
 }
 
 type RejectedFile struct {
-	OriginalFileName string `json:"original_file_name"`
-	Error            string `json:"error"`
+	RefID            *string `json:"ref_id,omitempty"`
+	OriginalFileName string  `json:"original_file_name"`
+	Error            string  `json:"error"` // todo: change to reason code and message
 }
