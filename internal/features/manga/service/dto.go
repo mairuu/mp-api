@@ -82,9 +82,9 @@ type PageDTO struct {
 type ChapterSummaryDTO struct {
 	ID      string  `json:"id"`
 	MangaID string  `json:"manga_id"`
-	Title   string  `json:"title"`
-	Volume  *string `json:"volume"`
 	Number  string  `json:"number"`
+	Title   *string `json:"title"`
+	Volume  *string `json:"volume"`
 }
 
 // pagination

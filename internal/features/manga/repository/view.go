@@ -12,7 +12,7 @@ type MangaSummary struct {
 type ChapterSummary struct {
 	ID      uuid.UUID
 	MangaID uuid.UUID
-	Title   string
 	Number  string
+	Title   *string
 	Volume  *string
 }
