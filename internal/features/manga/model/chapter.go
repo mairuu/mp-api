@@ -54,7 +54,7 @@ func NewChapter(mangaID uuid.UUID, number string, title, volume *string, pages [
 		Title:     title,
 		Volume:    volume,
 		Number:    number,
-		State:     ChapterStateDraft,
+		State:     ChapterStatePublish,
 		Pages:     pages,
 		UpdatedAt: now,
 		CreatedAt: now,
