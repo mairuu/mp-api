@@ -212,7 +212,7 @@ func validateStatus(status MangaStatus) error {
 	return nil
 }
 
-var volumeRegex = `^(0|[1-9]\d*)(\.\d+)?([a-z]+)?$`
+var volumeRegex = regexp.MustCompile(`^(0|[1-9]\d*)(\.\d+)?$`)
 
 func validateVolume(volume *string) error {
 	if volume == nil {
@@ -221,13 +221,9 @@ func validateVolume(volume *string) error {
 	if *volume == "" {
 		return nil
 	}
-	matched, err := regexp.MatchString(volumeRegex, *volume)
-	if err != nil {
-		return err
-	}
-	if !matched {
+	if !volumeRegex.MatchString(*volume) {
 		return ErrInvalidVolume.
-			WithMessage("must follow format: number, decimal, or number with letter suffix (e.g., 1, 1.5, 1a)").
+			WithMessage("must follow format: number, decimal (e.g., 1, 1.5)").
 			WithArg("value", *volume)
 	}
 	return nil
