@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/mairuu/mp-api/internal/features/manga/model"
 	repo "github.com/mairuu/mp-api/internal/features/manga/repository"
@@ -72,11 +73,12 @@ func (mp *mapper) ToChapterSummaryDTO(c *repo.ChapterSummary) ChapterSummaryDTO 
 	}
 
 	return ChapterSummaryDTO{
-		ID:      c.ID.String(),
-		MangaID: c.MangaID.String(),
-		Title:   c.Title,
-		Volume:  c.Volume,
-		Number:  c.Number,
+		ID:        c.ID.String(),
+		MangaID:   c.MangaID.String(),
+		Title:     c.Title,
+		Volume:    c.Volume,
+		Number:    c.Number,
+		CreatedAt: c.CreatedAt.Format(time.RFC3339),
 	}
 }
 

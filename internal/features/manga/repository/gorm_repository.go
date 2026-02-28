@@ -228,7 +228,7 @@ func (r *GormRepository) CountChapters(ctx context.Context, filter ChapterFilter
 func (r *GormRepository) ListChapters(ctx context.Context, filter ChapterFilter, pagging Pagging, ordering []Ordering) ([]ChapterSummary, error) {
 	q := r.db.WithContext(ctx).
 		Model(&ChapterDB{}).
-		Select("id", "manga_id", "title", "number", "volume")
+		Select("id", "manga_id", "title", "number", "volume", "created_at")
 	q = applyChapterFilter(q, filter)
 	q = applyPagging(q, pagging)
 	q = applyOrderings(q, ordering)

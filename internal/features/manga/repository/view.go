@@ -1,6 +1,10 @@
 package repository
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type MangaSummary struct {
 	ID               uuid.UUID
@@ -10,9 +14,10 @@ type MangaSummary struct {
 }
 
 type ChapterSummary struct {
-	ID      uuid.UUID
-	MangaID uuid.UUID
-	Number  string
-	Title   *string
-	Volume  *string
+	ID        uuid.UUID
+	MangaID   uuid.UUID
+	Number    string
+	Title     *string
+	Volume    *string
+	CreatedAt time.Time
 }
