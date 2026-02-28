@@ -204,6 +204,10 @@ func (s *Service) processChapterPageChanges(existing []model.Page, dtos *[]strin
 		GetKey: func(p *model.Page) string {
 			return p.ObjectName
 		},
+		UpdateItem: func(existing, updating *model.Page) (updated *model.Page, toAdd *model.Page, toDelete *model.Page, err error) {
+			// pages are immutable, so we treat all matched items as updated without changes
+			return existing, nil, nil, nil
+		},
 	}
 
 	return differ.Diff(existing, newPages)
