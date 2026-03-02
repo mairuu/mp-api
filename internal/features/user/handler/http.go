@@ -107,7 +107,8 @@ func (h *UserHandler) Logout(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	// response body need to align with another enpoints for simplicity in client handling
+	httptransport.SuccessResponse(ctx, http.StatusOK, nil)
 }
 
 func (h *UserHandler) handleErrors(ctx *gin.Context, err error) {
