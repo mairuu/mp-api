@@ -45,3 +45,35 @@ func toUserModel(udb *UserDB) model.User {
 		UpdatedAt:    udb.UpdatedAt,
 	}
 }
+
+type RefreshTokenDB struct {
+	Token     string     `gorm:"type:varchar(64);primaryKey"`
+	UserID    uuid.UUID  `gorm:"type:uuid;not null;index"`
+	ExpiresAt time.Time  `gorm:"not null"`
+	CreatedAt time.Time  `gorm:"not null"`
+	RevokedAt *time.Time `gorm:"default:null"`
+}
+
+func (RefreshTokenDB) TableName() string {
+	return "refresh_tokens"
+}
+
+func toRefreshTokenDB(rt *model.RefreshToken) RefreshTokenDB {
+	return RefreshTokenDB{
+		Token:     rt.Token,
+		UserID:    rt.UserID,
+		ExpiresAt: rt.ExpiresAt,
+		CreatedAt: rt.CreatedAt,
+		RevokedAt: rt.RevokedAt,
+	}
+}
+
+func toRefreshTokenModel(rtdb *RefreshTokenDB) model.RefreshToken {
+	return model.RefreshToken{
+		Token:     rtdb.Token,
+		UserID:    rtdb.UserID,
+		ExpiresAt: rtdb.ExpiresAt,
+		CreatedAt: rtdb.CreatedAt,
+		RevokedAt: rtdb.RevokedAt,
+	}
+}

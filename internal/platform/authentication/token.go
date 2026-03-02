@@ -1,6 +1,8 @@
 package authentication
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -9,15 +11,29 @@ import (
 )
 
 type TokenService struct {
-	secret         []byte
-	accessTokenTTL time.Duration
+	secret          []byte
+	accessTokenTTL  time.Duration
+	refreshTokenTTL time.Duration
 }
 
-func NewTokenService(secret []byte, accessTokenTTL time.Duration) *TokenService {
+func NewTokenService(secret []byte, accessTokenTTL, refreshTokenTTL time.Duration) *TokenService {
 	return &TokenService{
-		secret:         secret,
-		accessTokenTTL: accessTokenTTL,
+		secret:          secret,
+		accessTokenTTL:  accessTokenTTL,
+		refreshTokenTTL: refreshTokenTTL,
 	}
+}
+
+func (s *TokenService) RefreshTokenTTL() time.Duration {
+	return s.refreshTokenTTL
+}
+
+func (s *TokenService) GenerateRefreshToken() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("generate refresh token: %w", err)
+	}
+	return hex.EncodeToString(b), nil
 }
 
 func (s *TokenService) GenerateToken(userID uuid.UUID, role string) (string, error) {

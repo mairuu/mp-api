@@ -25,6 +25,8 @@ func NewUserHandler(logger *slog.Logger, service *service.Service) *UserHandler 
 func (h *UserHandler) RegisterRoutes(router gin.IRouter) {
 	router.POST("/register", h.Register)
 	router.POST("/login", h.Login)
+	router.POST("/refresh", h.Refresh)
+	router.POST("/logout", h.Logout)
 
 	router.GET("/me", middleware.RequiredAuth(), h.GetMe)
 }
@@ -77,6 +79,37 @@ func (h *UserHandler) GetMe(ctx *gin.Context) {
 	httptransport.SuccessResponse(ctx, http.StatusOK, user)
 }
 
+func (h *UserHandler) Refresh(ctx *gin.Context) {
+	var req service.RefreshTokenDTO
+	if err := httptransport.BindJSON(ctx, &req, h.log); err != nil {
+		h.handleErrors(ctx, err)
+		return
+	}
+
+	response, err := h.service.RefreshToken(ctx.Request.Context(), req)
+	if err != nil {
+		h.handleErrors(ctx, err)
+		return
+	}
+
+	httptransport.SuccessResponse(ctx, http.StatusOK, response)
+}
+
+func (h *UserHandler) Logout(ctx *gin.Context) {
+	var req service.RefreshTokenDTO
+	if err := httptransport.BindJSON(ctx, &req, h.log); err != nil {
+		h.handleErrors(ctx, err)
+		return
+	}
+
+	if err := h.service.Logout(ctx.Request.Context(), req); err != nil {
+		h.handleErrors(ctx, err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
 func (h *UserHandler) handleErrors(ctx *gin.Context, err error) {
 	code := h.toHTTPStatusCode(err)
 
@@ -91,12 +124,15 @@ func (h *UserHandler) handleErrors(ctx *gin.Context, err error) {
 }
 
 var domainErrStatusMap = map[string]int{
-	model.ErrUserNotFound.Code:       http.StatusNotFound,
-	model.ErrUserAlreadyExists.Code:  http.StatusConflict,
-	model.ErrInvalidCredentials.Code: http.StatusUnauthorized,
-	model.ErrInvalidEmail.Code:       http.StatusBadRequest,
-	model.ErrInvalidUsername.Code:    http.StatusBadRequest,
-	model.ErrInvalidPassword.Code:    http.StatusBadRequest,
+	model.ErrUserNotFound.Code:         http.StatusNotFound,
+	model.ErrUserAlreadyExists.Code:    http.StatusConflict,
+	model.ErrInvalidCredentials.Code:   http.StatusUnauthorized,
+	model.ErrInvalidEmail.Code:         http.StatusBadRequest,
+	model.ErrInvalidUsername.Code:      http.StatusBadRequest,
+	model.ErrInvalidPassword.Code:      http.StatusBadRequest,
+	model.ErrRefreshTokenNotFound.Code: http.StatusUnauthorized,
+	model.ErrRefreshTokenExpired.Code:  http.StatusUnauthorized,
+	model.ErrRefreshTokenRevoked.Code:  http.StatusUnauthorized,
 }
 
 func (h *UserHandler) toHTTPStatusCode(err error) int {

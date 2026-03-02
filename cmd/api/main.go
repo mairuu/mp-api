@@ -71,7 +71,7 @@ func main() {
 		panic(err)
 	}
 
-	tokenService := authentication.NewTokenService(cfg.JWT.Secret, cfg.JWT.AccessTokenTTL)
+	tokenService := authentication.NewTokenService(cfg.JWT.Secret, cfg.JWT.AccessTokenTTL, cfg.JWT.RefreshTokenTTL)
 	userRepo := userrepo.NewGormRepository(db)
 	mangaRepo := mangarepo.NewGormRepository(db)
 
@@ -98,6 +98,7 @@ func main() {
 
 	// start background services
 	bucketService.StartCleanup(cfg.Cleanup.Interval, cfg.Cleanup.TTL)
+	userService.StartCleanup(cfg.Cleanup.Interval)
 
 	// todo: graceful shutdown
 	log.Info("starting server", "addr", cfg.HTTP.Addr)

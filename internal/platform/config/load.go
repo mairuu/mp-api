@@ -26,8 +26,9 @@ func Load() (*Config, error) {
 	}
 
 	cfg.JWT = JWTConfig{
-		Secret:         []byte(getEnv("JWT_SECRET", "your-secret-key-change-this-in-production")),
-		AccessTokenTTL: getEnvDuration("JWT_ACCESS_TOKEN_TTL", 24*time.Hour),
+		Secret:          []byte(getEnv("JWT_SECRET", "your-secret-key-change-this-in-production")),
+		AccessTokenTTL:  getEnvDuration("JWT_ACCESS_TOKEN_TTL", 15*time.Minute),
+		RefreshTokenTTL: getEnvDuration("JWT_REFRESH_TOKEN_TTL", 7*24*time.Hour),
 	}
 
 	cfg.Storage = StorageConfig{

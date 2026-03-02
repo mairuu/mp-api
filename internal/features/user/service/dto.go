@@ -11,6 +11,10 @@ type LoginDTO struct {
 	Password        string `json:"password" binding:"required"`
 }
 
+type RefreshTokenDTO struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
 type UserResponseDTO struct {
 	ID       string `json:"id"`
 	Username string `json:"username"`
@@ -19,6 +23,7 @@ type UserResponseDTO struct {
 }
 
 type LoginResponseDTO struct {
-	User  UserResponseDTO `json:"user"`
-	Token string          `json:"token"`
+	User         UserResponseDTO `json:"user"`
+	AccessToken  string          `json:"access_token"`
+	RefreshToken string          `json:"refresh_token"`
 }

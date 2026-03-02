@@ -25,8 +25,9 @@ type HTTPConfig struct {
 }
 
 type JWTConfig struct {
-	Secret         []byte
-	AccessTokenTTL time.Duration
+	Secret          []byte
+	AccessTokenTTL  time.Duration
+	RefreshTokenTTL time.Duration
 }
 
 type StorageConfig struct {

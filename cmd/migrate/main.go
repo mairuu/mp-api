@@ -24,6 +24,7 @@ func main() {
 
 	allModels := []any{
 		&userrepo.UserDB{},
+		&userrepo.RefreshTokenDB{},
 		&mangarepo.MangaDB{},
 		&mangarepo.CoverArtDB{},
 		&mangarepo.ChapterDB{},

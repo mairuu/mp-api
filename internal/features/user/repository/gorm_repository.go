@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -82,6 +83,61 @@ func (r *GormRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	}
 	if affected == 0 {
 		return model.ErrUserNotFound.WithArg("id", id.String())
+	}
+	return nil
+}
+
+func (r *GormRepository) SaveRefreshToken(ctx context.Context, rt *model.RefreshToken) error {
+	rtdb := toRefreshTokenDB(rt)
+	if err := r.db.WithContext(ctx).Create(&rtdb).Error; err != nil {
+		return fmt.Errorf("save refresh token: %w", err)
+	}
+	return nil
+}
+
+func (r *GormRepository) GetRefreshToken(ctx context.Context, token string) (*model.RefreshToken, error) {
+	rtdb, err := gorm.G[RefreshTokenDB](r.db).Where("token = ?", token).First(ctx)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, model.ErrRefreshTokenNotFound
+		}
+		return nil, fmt.Errorf("get refresh token: %w", err)
+	}
+	rt := toRefreshTokenModel(&rtdb)
+	return &rt, nil
+}
+
+func (r *GormRepository) RevokeRefreshToken(ctx context.Context, token string) error {
+	now := time.Now()
+	affected, err := gorm.G[RefreshTokenDB](r.db).
+		Where("token = ? AND revoked_at IS NULL", token).
+		Update(ctx, "revoked_at", now)
+	if err != nil {
+		return fmt.Errorf("revoke refresh token: %w", err)
+	}
+	if affected == 0 {
+		return model.ErrRefreshTokenNotFound
+	}
+	return nil
+}
+
+func (r *GormRepository) RevokeAllUserRefreshTokens(ctx context.Context, userID uuid.UUID) error {
+	now := time.Now()
+	_, err := gorm.G[RefreshTokenDB](r.db).
+		Where("user_id = ? AND revoked_at IS NULL", userID).
+		Update(ctx, "revoked_at", now)
+	if err != nil {
+		return fmt.Errorf("revoke all user refresh tokens: %w", err)
+	}
+	return nil
+}
+
+func (r *GormRepository) DeleteExpiredRefreshTokens(ctx context.Context) error {
+	_, err := gorm.G[RefreshTokenDB](r.db).
+		Where("expires_at < ?", time.Now()).
+		Delete(ctx)
+	if err != nil {
+		return fmt.Errorf("delete expired refresh tokens: %w", err)
 	}
 	return nil
 }
