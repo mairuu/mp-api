@@ -22,7 +22,8 @@ func Load() (*Config, error) {
 	}
 
 	cfg.HTTP = HTTPConfig{
-		Addr: getEnv("HTTP_ADDR", ":8080"),
+		Addr:            getEnv("HTTP_ADDR", ":8080"),
+		ShutdownTimeout: getEnvDuration("HTTP_SHUTDOWN_TIMEOUT", 10*time.Second),
 	}
 
 	cfg.JWT = JWTConfig{

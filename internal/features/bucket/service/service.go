@@ -13,17 +13,14 @@ import (
 )
 
 type Service struct {
-	enforcer      *authorization.Enforcer
-	bucket        storage.Bucket
-	cleanupTicker *time.Ticker
-	cleanupDone   chan struct{}
+	enforcer *authorization.Enforcer
+	bucket   storage.Bucket
 }
 
 func NewService(enforcer *authorization.Enforcer, bucket storage.Bucket) *Service {
 	return &Service{
-		enforcer:    enforcer,
-		bucket:      bucket,
-		cleanupDone: make(chan struct{}),
+		enforcer: enforcer,
+		bucket:   bucket,
 	}
 }
 
@@ -107,31 +104,7 @@ func (s *Service) Download(ctx context.Context, objectName string) (storage.Obje
 	return s.bucket.Download(ctx, objectName)
 }
 
-func (s *Service) StartCleanup(interval time.Duration, ttl time.Duration) {
-	if s.cleanupTicker != nil {
-		return // already running
-	}
-	s.cleanupTicker = time.NewTicker(interval)
-
-	go func() {
-		defer s.cleanupTicker.Stop()
-
-		s.cleanupTemporaryFiles(ttl)
-
-		for {
-			select {
-			case <-s.cleanupTicker.C:
-				s.cleanupTemporaryFiles(ttl)
-			case <-s.cleanupDone:
-				return
-			}
-		}
-	}()
-}
-
-func (s *Service) cleanupTemporaryFiles(ttl time.Duration) {
-	ctx := context.Background()
-
+func (s *Service) CleanupExpiredFiles(ctx context.Context, ttl time.Duration) {
 	for objectName := range s.bucket.ListIter(ctx, "") {
 		meta, err := s.bucket.GetMetadata(ctx, objectName)
 		if err != nil {
@@ -143,12 +116,6 @@ func (s *Service) cleanupTemporaryFiles(ttl time.Duration) {
 				continue
 			}
 		}
-	}
-}
-
-func (s *Service) StopCleanup() {
-	if s.cleanupDone != nil {
-		close(s.cleanupDone)
 	}
 }
 

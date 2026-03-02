@@ -24,8 +24,6 @@ type Service struct {
 	repo           repo.Repository
 	tokenGenerator TokenGenerator
 	enforcer       *authorization.Enforcer
-	cleanupTicker  *time.Ticker
-	cleanupDone    chan struct{}
 }
 
 func NewService(repo repo.Repository, tokenGenerator TokenGenerator, enforcer *authorization.Enforcer) *Service {
@@ -33,7 +31,6 @@ func NewService(repo repo.Repository, tokenGenerator TokenGenerator, enforcer *a
 		repo:           repo,
 		tokenGenerator: tokenGenerator,
 		enforcer:       enforcer,
-		cleanupDone:    make(chan struct{}),
 	}
 }
 
@@ -173,36 +170,8 @@ func (s *Service) GetUserByID(ctx context.Context, id uuid.UUID) (*UserResponseD
 	}, nil
 }
 
-func (s *Service) StartCleanup(interval time.Duration) {
-	if s.cleanupTicker != nil {
-		return // already running
-	}
-	s.cleanupTicker = time.NewTicker(interval)
-
-	go func() {
-		defer s.cleanupTicker.Stop()
-
-		s.deleteExpiredRefreshTokens()
-
-		for {
-			select {
-			case <-s.cleanupTicker.C:
-				s.deleteExpiredRefreshTokens()
-			case <-s.cleanupDone:
-				return
-			}
-		}
-	}()
-}
-
-func (s *Service) StopCleanup() {
-	if s.cleanupDone != nil {
-		close(s.cleanupDone)
-	}
-}
-
-func (s *Service) deleteExpiredRefreshTokens() {
-	if err := s.repo.DeleteExpiredRefreshTokens(context.Background()); err != nil {
+func (s *Service) CleanupExpiredTokens(ctx context.Context) {
+	if err := s.repo.DeleteExpiredRefreshTokens(ctx); err != nil {
 		// non-fatal; will retry on next tick
 		_ = err
 	}

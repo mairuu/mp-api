@@ -21,7 +21,8 @@ type DatabaseConfig struct {
 }
 
 type HTTPConfig struct {
-	Addr string
+	Addr            string
+	ShutdownTimeout time.Duration
 }
 
 type JWTConfig struct {

@@ -1,6 +1,12 @@
 package main
 
 import (
+	"context"
+	"net/http"
+	"os/signal"
+	"sync"
+	"syscall"
+
 	"github.com/gin-gonic/gin"
 	buckethandler "github.com/mairuu/mp-api/internal/features/bucket/handler"
 	bucket "github.com/mairuu/mp-api/internal/features/bucket/model"
@@ -18,6 +24,7 @@ import (
 	"github.com/mairuu/mp-api/internal/platform/config"
 	"github.com/mairuu/mp-api/internal/platform/database"
 	"github.com/mairuu/mp-api/internal/platform/logging"
+	"github.com/mairuu/mp-api/internal/platform/scheduler"
 	"github.com/mairuu/mp-api/internal/platform/storage"
 	httptransport "github.com/mairuu/mp-api/internal/platform/transport/http"
 	"github.com/mairuu/mp-api/internal/platform/transport/http/handler"
@@ -25,6 +32,9 @@ import (
 )
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	cfg, err := config.Load()
 	if err != nil {
 		panic(err)
@@ -97,12 +107,41 @@ func main() {
 	router.RegisterRoutes()
 
 	// start background services
-	bucketService.StartCleanup(cfg.Cleanup.Interval, cfg.Cleanup.TTL)
-	userService.StartCleanup(cfg.Cleanup.Interval)
+	ttl := cfg.Cleanup.TTL
+	scheduler.Schedule(ctx, cfg.Cleanup.Interval, func(ctx context.Context) {
+		bucketService.CleanupExpiredFiles(ctx, ttl)
+	})
+	scheduler.Schedule(ctx, cfg.Cleanup.Interval, func(ctx context.Context) {
+		userService.CleanupExpiredTokens(ctx)
+	})
 
-	// todo: graceful shutdown
+	srv := &http.Server{
+		Addr:    cfg.HTTP.Addr,
+		Handler: r,
+	}
+
+	var wg sync.WaitGroup
+	// graceful shutdown
+	wg.Go(func() {
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.HTTP.ShutdownTimeout)
+		defer cancel()
+
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			log.Error("failed to gracefully shutdown server", "error", err)
+		}
+		log.Info("server shutdown complete")
+		if sqlDB, err := db.DB(); err == nil {
+			if err := sqlDB.Close(); err != nil {
+				log.Error("failed to close database connection", "error", err)
+			}
+		}
+		log.Info("database connection closed")
+	})
+
 	log.Info("starting server", "addr", cfg.HTTP.Addr)
-	if err := r.Run(cfg.HTTP.Addr); err != nil {
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Error("failed to run server", "error", err)
 	}
+	wg.Wait()
 }
