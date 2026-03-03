@@ -325,6 +325,17 @@ func applyChapterFilter(q *gorm.DB, filter ChapterFilter) *gorm.DB {
 	return q
 }
 
+func orderKeyer(field OrderingField) string {
+	switch field {
+	case OrderByChapterNumber:
+		return "CAST(NULLIF(number, '') AS INTEGER)"
+	case OrderByChapterVolume:
+		return "CAST(NULLIF(volume, '') AS INTEGER)"
+	default:
+		return string(field)
+	}
+}
+
 func applyPagging(q *gorm.DB, pagging Pagging) *gorm.DB {
 	q = q.Limit(pagging.Limit).Offset(pagging.Offset)
 	return q
@@ -336,7 +347,7 @@ func applyOrderings(q *gorm.DB, ordering []Ordering) *gorm.DB {
 			continue
 		}
 		q = q.Order(clause.OrderByColumn{
-			Column: clause.Column{Name: o.Field},
+			Column: clause.Column{Name: orderKeyer(o.Field), Raw: true},
 			Desc:   o.Direction == Desc,
 		})
 	}

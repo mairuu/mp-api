@@ -44,8 +44,21 @@ type Pagging struct {
 	Offset int
 }
 
+type OrderingField string
+
+const (
+	// shared
+	OrderByTitle     OrderingField = "title"
+	OrderByCreatedAt OrderingField = "created_at"
+	OrderByUpdatedAt OrderingField = "updated_at"
+
+	// chapter-specific
+	OrderByChapterNumber OrderingField = "number"
+	OrderByChapterVolume OrderingField = "volume"
+)
+
 type Ordering struct {
-	Field     string
+	Field     OrderingField
 	Direction OrderingDirection
 }
 

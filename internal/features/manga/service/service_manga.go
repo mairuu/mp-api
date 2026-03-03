@@ -61,7 +61,7 @@ func (s *Service) ListMangas(ctx context.Context, ur *app.UserRole, q *MangaList
 
 	filter := q.ToMangaFilter()
 	pagging := q.ToPaging()
-	ordering := q.ToOrdering([]string{"title", "created_at", "updated_at"})
+	ordering := q.ToOrdering()
 
 	total, err := s.repo.CountMangas(ctx, filter)
 	if err != nil {

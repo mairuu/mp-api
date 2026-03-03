@@ -13,6 +13,14 @@ type MangaListQuery struct {
 	OrderingQuery
 }
 
+func (q *MangaListQuery) ToOrdering() []repo.Ordering {
+	return q.OrderingQuery.toOrdering(
+		repo.OrderByTitle,
+		repo.OrderByCreatedAt,
+		repo.OrderByUpdatedAt,
+	)
+}
+
 type MangaFilterQuery struct {
 	IDs    []string `form:"ids[]"`
 	Title  *string  `form:"title"`
@@ -31,6 +39,15 @@ type ChapterListQuery struct {
 	ChapterFilterQuery
 	PagingQuery
 	OrderingQuery
+}
+
+func (q *ChapterListQuery) ToOrdering() []repo.Ordering {
+	return q.OrderingQuery.toOrdering(
+		repo.OrderByTitle,
+		repo.OrderByChapterNumber,
+		repo.OrderByChapterVolume,
+		repo.OrderByCreatedAt,
+	)
 }
 
 type ChapterFilterQuery struct {
@@ -56,14 +73,14 @@ type OrderingQuery struct {
 	Orders []string `form:"orders[]"`
 }
 
-func (o *OrderingQuery) ToOrdering(validFields []string) []repo.Ordering {
+func (o *OrderingQuery) toOrdering(validFields ...repo.OrderingField) []repo.Ordering {
 	var orderings []repo.Ordering
 	for _, order := range o.Orders {
 		parts := strings.Split(order, ",")
 		if len(parts) != 2 {
 			continue
 		}
-		field := parts[0]
+		field := repo.OrderingField(parts[0])
 		direction := parts[1]
 
 		if !slices.Contains(validFields, field) {

@@ -71,7 +71,7 @@ func (s *Service) ListChapters(ctx context.Context, ur *app.UserRole, q *Chapter
 	filter := q.ToChapterFilter()
 	filter.State = ptr(string(model.ChapterStatePublish))
 	paging := q.ToPaging()
-	ordering := q.ToOrdering([]string{"title", "number", "volume", "created_at"})
+	ordering := q.ToOrdering()
 
 	total, err := s.repo.CountChapters(ctx, filter)
 	if err != nil {
