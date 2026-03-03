@@ -20,7 +20,7 @@ func (_ *mapper) ToMangaSummaryDTO(m *repo.MangaSummary) MangaSummaryDTO {
 	return MangaSummaryDTO{
 		ID:              m.ID.String(),
 		Title:           m.Title,
-		CoverObjectName: m.CoverObjecrtName,
+		CoverObjectName: m.CoverObjectName,
 	}
 }
 
@@ -72,12 +72,18 @@ func (mp *mapper) ToChapterSummaryDTO(c *repo.ChapterSummary) ChapterSummaryDTO 
 		return ChapterSummaryDTO{}
 	}
 
+	var vol *string
+	if c.Volume != nil {
+		v := c.Volume.String()
+		vol = &v
+	}
+
 	return ChapterSummaryDTO{
 		ID:        c.ID.String(),
 		MangaID:   c.MangaID.String(),
 		Title:     c.Title,
-		Volume:    c.Volume,
-		Number:    c.Number,
+		Volume:    vol,
+		Number:    c.Number.String(),
 		CreatedAt: c.CreatedAt.Format(time.RFC3339),
 	}
 }

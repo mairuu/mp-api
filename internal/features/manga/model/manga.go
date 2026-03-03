@@ -19,6 +19,7 @@ type Manga struct {
 	CreatedAt time.Time
 }
 
+// todo: make volume a nullable
 type CoverArt struct {
 	IsPrimary   bool   // takes precedence over volume when determining primary cover
 	Volume      string // unique per manga, except for null/empty values which are allowed to have multiple entries
@@ -212,7 +213,7 @@ func validateStatus(status MangaStatus) error {
 	return nil
 }
 
-var volumeRegex = regexp.MustCompile(`^(0|[1-9]\d*)(\.\d+)?$`)
+var volumeRegex = regexp.MustCompile(`^(0|[1-9]\d*)(\.\d{1,4})?$`)
 
 func validateVolume(volume *string) error {
 	if volume == nil {
@@ -223,7 +224,12 @@ func validateVolume(volume *string) error {
 	}
 	if !volumeRegex.MatchString(*volume) {
 		return ErrInvalidVolume.
-			WithMessage("must follow format: number, decimal (e.g., 1, 1.5)").
+			WithMessage("must follow format: number, decimal (e.g., 1, 1.5) and up to 4 decimal places").
+			WithArg("value", *volume)
+	}
+	if len(*volume) > 10 {
+		return ErrInvalidVolume.
+			WithMessage("volume cannot be longer than 10 characters").
 			WithArg("value", *volume)
 	}
 	return nil

@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mairuu/mp-api/internal/features/manga/model"
+	"github.com/shopspring/decimal"
 )
 
 // mangas
@@ -63,12 +64,12 @@ func (mdb *MangaDB) toMangaModel() model.Manga {
 }
 
 type CoverArtDB struct {
-	MangaID     uuid.UUID `gorm:"type:uuid;primaryKey"`
-	Order       int       `gorm:"type:int;primaryKey"`
-	IsPrimary   bool      `gorm:"type:boolean;not null;default:false"`
-	Volume      string    `gorm:"type:varchar(10);not null;primaryKey"`
-	ObjectName  string    `gorm:"type:varchar(255);not null"`
-	Description string    `gorm:"type:text"`
+	MangaID     uuid.UUID        `gorm:"type:uuid;primaryKey"`
+	Order       int              `gorm:"type:int;primaryKey"`
+	IsPrimary   bool             `gorm:"type:boolean;not null;default:false"`
+	Volume      *decimal.Decimal `gorm:"type:decimal(10,4)"`
+	ObjectName  string           `gorm:"type:varchar(255);not null"`
+	Description string           `gorm:"type:text"`
 }
 
 func (c *CoverArtDB) TableName() string {
@@ -76,19 +77,31 @@ func (c *CoverArtDB) TableName() string {
 }
 
 func toCoverArtDB(cover *model.CoverArt, mangaID uuid.UUID) CoverArtDB {
+	var vol *decimal.Decimal
+	if cover.Volume != "" {
+		v, err := decimal.NewFromString(cover.Volume)
+		if err == nil {
+			vol = &v
+		}
+	}
 	return CoverArtDB{
 		MangaID:     mangaID,
 		IsPrimary:   cover.IsPrimary,
-		Volume:      cover.Volume,
+		Volume:      vol,
 		ObjectName:  cover.ObjectName,
 		Description: cover.Description,
 	}
 }
 
 func (cdb *CoverArtDB) toCoverArtModel() model.CoverArt {
+	var vol string
+	if cdb.Volume != nil {
+		v := cdb.Volume.String()
+		vol = v
+	}
 	return model.CoverArt{
 		IsPrimary:   cdb.IsPrimary,
-		Volume:      cdb.Volume,
+		Volume:      vol,
 		ObjectName:  cdb.ObjectName,
 		Description: cdb.Description,
 	}
@@ -97,14 +110,14 @@ func (cdb *CoverArtDB) toCoverArtModel() model.CoverArt {
 // chapters
 
 type ChapterDB struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey"`
-	MangaID   uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_manga_number"`
-	Manga     *MangaDB  `gorm:"foreignKey:MangaID;constraint:OnDelete:CASCADE;"`
-	Title     *string   `gorm:"type:varchar(255)"`
-	Volume    *string   `gorm:"type:varchar(10)"`
-	Number    string    `gorm:"type:varchar(10);not null;uniqueIndex:idx_manga_number"`
-	State     string    `gorm:"type:varchar(10);not null;index:idx_state"`
-	Pages     []PageDB  `gorm:"foreignKey:ChapterID;constraint:OnDelete:CASCADE;"`
+	ID        uuid.UUID        `gorm:"type:uuid;primaryKey"`
+	MangaID   uuid.UUID        `gorm:"type:uuid;not null;uniqueIndex:idx_manga_number"`
+	Manga     *MangaDB         `gorm:"foreignKey:MangaID;constraint:OnDelete:CASCADE;"`
+	Title     *string          `gorm:"type:varchar(255)"`
+	Volume    *decimal.Decimal `gorm:"type:decimal(10, 4)"`
+	Number    decimal.Decimal  `gorm:"type:decimal(10, 4);not null;uniqueIndex:idx_manga_number"`
+	State     string           `gorm:"type:varchar(10);not null;index:idx_state"`
+	Pages     []PageDB         `gorm:"foreignKey:ChapterID;constraint:OnDelete:CASCADE;"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -118,12 +131,25 @@ func toChapterDB(c *model.Chapter) ChapterDB {
 	for i := range c.Pages {
 		pages = append(pages, toPageDB(&c.Pages[i], c.ID, i+1))
 	}
+
+	var vol *decimal.Decimal
+	if c.Volume != nil {
+		v, err := decimal.NewFromString(*c.Volume)
+		if err == nil {
+			vol = &v
+		}
+	}
+	num, err := decimal.NewFromString(c.Number)
+	if err != nil {
+		num = decimal.Zero
+	}
+
 	return ChapterDB{
 		ID:        c.ID,
 		MangaID:   c.MangaID,
 		Title:     c.Title,
-		Volume:    c.Volume,
-		Number:    c.Number,
+		Volume:    vol,
+		Number:    num,
 		State:     string(c.State),
 		Pages:     pages,
 		CreatedAt: c.CreatedAt,
@@ -136,12 +162,19 @@ func (cdb *ChapterDB) toChapterModel() model.Chapter {
 	for i := range cdb.Pages {
 		pages = append(pages, cdb.Pages[i].toPageModel())
 	}
+
+	var vol *string
+	if cdb.Volume != nil {
+		v := cdb.Volume.String()
+		vol = &v
+	}
+
 	return model.Chapter{
 		ID:        cdb.ID,
 		MangaID:   cdb.MangaID,
 		Title:     cdb.Title,
-		Volume:    cdb.Volume,
-		Number:    cdb.Number,
+		Volume:    vol,
+		Number:    cdb.Number.String(),
 		State:     model.ChapterState(cdb.State),
 		Pages:     pages,
 		CreatedAt: cdb.CreatedAt,

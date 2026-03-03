@@ -4,20 +4,21 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 type MangaSummary struct {
-	ID               uuid.UUID
-	Title            string
-	CoverVolume      *string
-	CoverObjecrtName *string
+	ID              uuid.UUID
+	Title           string
+	CoverVolume     *decimal.Decimal
+	CoverObjectName *string
 }
 
 type ChapterSummary struct {
 	ID        uuid.UUID
 	MangaID   uuid.UUID
-	Number    string
+	Number    decimal.Decimal
 	Title     *string
-	Volume    *string
+	Volume    *decimal.Decimal
 	CreatedAt time.Time
 }

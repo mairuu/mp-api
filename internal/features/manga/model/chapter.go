@@ -40,7 +40,7 @@ func NewChapter(mangaID uuid.UUID, number string, title, volume *string, pages [
 	if err := validateVolume(volume); err != nil {
 		return nil, err
 	}
-	if err := validateNumber(number); err != nil {
+	if err := validateNumber(&number); err != nil {
 		return nil, err
 	}
 	if err := validatePages(pages); err != nil {
@@ -105,7 +105,7 @@ func (u *ChapterUpdater) Number(number *string) *ChapterUpdater {
 		return u
 	}
 	u.opts = append(u.opts, func(c *Chapter) error {
-		if err := validateNumber(*number); err != nil {
+		if err := validateNumber(number); err != nil {
 			return err
 		}
 		c.Number = *number
@@ -169,17 +169,21 @@ func validatePages(pages []Page) error {
 	return nil
 }
 
-var numberRegex = `^(0|[1-9]\d*)(\.\d+)?([a-z]+)?$`
+var numberRegex = regexp.MustCompile(`^(0|[1-9]\d*)(\.\d{1,4})?$`)
 
-func validateNumber(number string) error {
-	matched, err := regexp.MatchString(numberRegex, number)
-	if err != nil {
-		return err
+func validateNumber(number *string) error {
+	if number == nil {
+		return nil
 	}
-	if !matched {
+	if !numberRegex.MatchString(*number) {
 		return ErrInvalidChapterNumber.
-			WithMessage("must follow format: number, decimal, or number with letter suffix (e.g., 1, 1.5, 1a)").
-			WithArg("value", number)
+			WithMessage("must follow format: number, decimal (e.g., 1, 1.5) and up to 4 decimal places").
+			WithArg("value", *number)
+	}
+	if len(*number) > 10 {
+		return ErrInvalidChapterNumber.
+			WithMessage("chapter number cannot be longer than 10 characters").
+			WithArg("value", *number)
 	}
 	return nil
 }

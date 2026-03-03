@@ -151,8 +151,8 @@ func (r *GormRepository) ListMangas(ctx context.Context, filter MangaFilter, pag
 			Title: m.Title,
 		})
 		if cover, exists := coverMap[m.ID]; exists {
-			mangas[i].CoverVolume = &cover.Volume
-			mangas[i].CoverObjecrtName = &cover.ObjectName
+			mangas[i].CoverVolume = cover.Volume
+			mangas[i].CoverObjectName = &cover.ObjectName
 		}
 	}
 
@@ -325,17 +325,6 @@ func applyChapterFilter(q *gorm.DB, filter ChapterFilter) *gorm.DB {
 	return q
 }
 
-func orderKeyer(field OrderingField) string {
-	switch field {
-	case OrderByChapterNumber:
-		return "CAST(NULLIF(number, '') AS INTEGER)"
-	case OrderByChapterVolume:
-		return "CAST(NULLIF(volume, '') AS INTEGER)"
-	default:
-		return string(field)
-	}
-}
-
 func applyPagging(q *gorm.DB, pagging Pagging) *gorm.DB {
 	q = q.Limit(pagging.Limit).Offset(pagging.Offset)
 	return q
@@ -353,4 +342,8 @@ func applyOrderings(q *gorm.DB, ordering []Ordering) *gorm.DB {
 	}
 
 	return q
+}
+
+func orderKeyer(field OrderingField) string {
+	return string(field)
 }
