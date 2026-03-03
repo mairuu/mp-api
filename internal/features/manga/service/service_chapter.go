@@ -26,27 +26,31 @@ func (s *Service) CreateChapter(ctx context.Context, ur *app.UserRole, req Creat
 		return nil, err
 	}
 
+	// temporary pages; needed for validation
 	pages := make([]model.ChapterPage, len(req.Pages))
 	for i, objName := range req.Pages {
-		pages[i] = model.ChapterPage{
-			ObjectName: objName,
-			Width:      1,
-			Height:     1,
-		}
+		pages[i] = model.NewStagingChapterPage(objName)
 	}
 	c, err := model.NewChapter(m.ID, req.Number, req.Title, req.Volume, pages)
 	if err != nil {
 		return nil, err
 	}
 
+	// staged pages
+	pages = make([]model.ChapterPage, len(c.Pages))
 	for i := range c.Pages {
 		img, err := s.processNewChapterPage(ctx, ur, c.ID, c.Pages[i].ObjectName)
 		if err != nil {
 			return nil, err
 		}
-		c.Pages[i].Width = img.width
-		c.Pages[i].Height = img.height
-		c.Pages[i].ObjectName = img.objectName
+		pages[i] = model.NewChapterPage(img.objectName, img.width, img.height)
+	}
+
+	err = c.Updater().
+		Pages(&pages).
+		Apply()
+	if err != nil {
+		return nil, err
 	}
 
 	err = s.repo.SaveChapter(ctx, c)
@@ -146,14 +150,14 @@ func (s *Service) UpdateChapter(ctx context.Context, ur *app.UserRole, id uuid.U
 	}
 
 	if len(r.Added) > 0 {
-		for _, p := range r.Added {
-			img, err := s.processNewChapterPage(ctx, ur, c.ID, p.ObjectName)
+		for i := range r.Added {
+			img, err := s.processNewChapterPage(ctx, ur, c.ID, r.Added[i].ObjectName)
 			if err != nil {
 				return nil, err
 			}
-			p.Width = img.width
-			p.Height = img.height
-			p.ObjectName = img.objectName
+			// replace staging page with actual page info after processing
+			p := model.NewChapterPage(img.objectName, img.width, img.height)
+			r.Added[i] = &p
 		}
 	}
 
@@ -197,7 +201,7 @@ func (s *Service) processChapterPageChanges(existing []model.ChapterPage, dtos *
 
 	newPages := make([]model.ChapterPage, len(*dtos))
 	for i, objName := range *dtos {
-		newPages[i] = model.ChapterPage{ObjectName: objName, Width: 1, Height: 1}
+		newPages[i] = model.NewStagingChapterPage(objName)
 	}
 
 	differ := collections.IdentifiableDiffer[string, model.ChapterPage]{
@@ -219,6 +223,10 @@ type pageImage struct {
 	objectName string
 }
 
+// processNewChapterPage processes a new chapter page by validating the staging object,
+// downloading and decoding the image, uploading it to the public bucket, and returning the page image info.
+// it also deletes the staging object after processing.
+// note: the process is not atomic
 func (s *Service) processNewChapterPage(ctx context.Context, ur *app.UserRole, chapterID uuid.UUID, stagingObjectName string) (*pageImage, error) {
 	// check if user owns the staging object
 	meta, err := s.temporaryBucket.GetMetadata(ctx, stagingObjectName)

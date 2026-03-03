@@ -205,9 +205,5 @@ func toPageDB(page *model.ChapterPage, chapterID uuid.UUID, number int) ChapterP
 }
 
 func (pdb *ChapterPageDB) toPageModel() model.ChapterPage {
-	return model.ChapterPage{
-		Width:      pdb.Width,
-		Height:     pdb.Height,
-		ObjectName: pdb.ObjectName,
-	}
+	return model.NewChapterPage(pdb.ObjectName, pdb.Width, pdb.Height)
 }
