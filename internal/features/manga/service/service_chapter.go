@@ -26,9 +26,9 @@ func (s *Service) CreateChapter(ctx context.Context, ur *app.UserRole, req Creat
 		return nil, err
 	}
 
-	pages := make([]model.Page, len(req.Pages))
+	pages := make([]model.ChapterPage, len(req.Pages))
 	for i, objName := range req.Pages {
-		pages[i] = model.Page{
+		pages[i] = model.ChapterPage{
 			ObjectName: objName,
 			Width:      1,
 			Height:     1,
@@ -182,11 +182,11 @@ func (s *Service) UpdateChapter(ctx context.Context, ur *app.UserRole, id uuid.U
 	return &dto, nil
 }
 
-func (s *Service) processChapterPageChanges(existing []model.Page, dtos *[]string) (*collections.DiffResult[model.Page], error) {
+func (s *Service) processChapterPageChanges(existing []model.ChapterPage, dtos *[]string) (*collections.DiffResult[model.ChapterPage], error) {
 	if dtos == nil {
-		r := collections.DiffResult[model.Page]{
+		r := collections.DiffResult[model.ChapterPage]{
 			Added:   nil,
-			Updated: make([]*model.Page, len(existing)),
+			Updated: make([]*model.ChapterPage, len(existing)),
 			Deleted: nil,
 		}
 		for i := range existing {
@@ -195,16 +195,16 @@ func (s *Service) processChapterPageChanges(existing []model.Page, dtos *[]strin
 		return &r, nil
 	}
 
-	newPages := make([]model.Page, len(*dtos))
+	newPages := make([]model.ChapterPage, len(*dtos))
 	for i, objName := range *dtos {
-		newPages[i] = model.Page{ObjectName: objName, Width: 1, Height: 1}
+		newPages[i] = model.ChapterPage{ObjectName: objName, Width: 1, Height: 1}
 	}
 
-	differ := collections.IdentifiableDiffer[string, model.Page]{
-		GetKey: func(p *model.Page) string {
+	differ := collections.IdentifiableDiffer[string, model.ChapterPage]{
+		GetKey: func(p *model.ChapterPage) string {
 			return p.ObjectName
 		},
-		UpdateItem: func(existing, updating *model.Page) (updated *model.Page, toAdd *model.Page, toDelete *model.Page, err error) {
+		UpdateItem: func(existing, updating *model.ChapterPage) (updated *model.ChapterPage, toAdd *model.ChapterPage, toDelete *model.ChapterPage, err error) {
 			// pages are immutable, so we treat all matched items as updated without changes
 			return existing, nil, nil, nil
 		},

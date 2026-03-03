@@ -15,7 +15,7 @@ type Chapter struct {
 	Title     *string
 	Volume    *string
 	State     ChapterState
-	Pages     []Page
+	Pages     []ChapterPage
 	UpdatedAt time.Time
 	CreatedAt time.Time
 }
@@ -27,13 +27,7 @@ const (
 	ChapterStatePublish ChapterState = "published"
 )
 
-type Page struct {
-	Width      int
-	Height     int
-	ObjectName string
-}
-
-func NewChapter(mangaID uuid.UUID, number string, title, volume *string, pages []Page) (*Chapter, error) {
+func NewChapter(mangaID uuid.UUID, number string, title, volume *string, pages []ChapterPage) (*Chapter, error) {
 	if err := validateTitle(title); err != nil {
 		return nil, err
 	}
@@ -125,7 +119,7 @@ func (u *ChapterUpdater) State(state *ChapterState) *ChapterUpdater {
 	return u
 }
 
-func (u *ChapterUpdater) Pages(pages *[]Page) *ChapterUpdater {
+func (u *ChapterUpdater) Pages(pages *[]ChapterPage) *ChapterUpdater {
 	if pages == nil {
 		return u
 	}
@@ -151,19 +145,13 @@ func (u *ChapterUpdater) Apply() error {
 	return nil
 }
 
-func validatePages(pages []Page) error {
+func validatePages(pages []ChapterPage) error {
 	if len(pages) == 0 {
 		return ErrEmptyPages.WithMessage("pages cannot be empty")
 	}
 	for _, page := range pages {
-		if page.Width <= 0 {
-			return ErrInvalidPageWidth.WithMessage("page width must be greater than zero")
-		}
-		if page.Height <= 0 {
-			return ErrInvalidPageHeight.WithMessage("page height must be greater than zero")
-		}
-		if page.ObjectName == "" {
-			return ErrEmptyPageObjectName.WithMessage("page object name cannot be empty")
+		if err := validateChapterPage(&page); err != nil {
+			return err
 		}
 	}
 	return nil

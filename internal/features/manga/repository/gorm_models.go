@@ -158,7 +158,7 @@ func toChapterDB(c *model.Chapter) ChapterDB {
 }
 
 func (cdb *ChapterDB) toChapterModel() model.Chapter {
-	pages := make([]model.Page, 0, len(cdb.Pages))
+	pages := make([]model.ChapterPage, 0, len(cdb.Pages))
 	for i := range cdb.Pages {
 		pages = append(pages, cdb.Pages[i].toPageModel())
 	}
@@ -194,7 +194,7 @@ func (p *PageDB) TableName() string {
 	return "pages"
 }
 
-func toPageDB(page *model.Page, chapterID uuid.UUID, number int) PageDB {
+func toPageDB(page *model.ChapterPage, chapterID uuid.UUID, number int) PageDB {
 	return PageDB{
 		ChapterID:  chapterID,
 		Number:     number,
@@ -204,8 +204,8 @@ func toPageDB(page *model.Page, chapterID uuid.UUID, number int) PageDB {
 	}
 }
 
-func (pdb *PageDB) toPageModel() model.Page {
-	return model.Page{
+func (pdb *PageDB) toPageModel() model.ChapterPage {
+	return model.ChapterPage{
 		Width:      pdb.Width,
 		Height:     pdb.Height,
 		ObjectName: pdb.ObjectName,
