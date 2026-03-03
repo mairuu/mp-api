@@ -57,16 +57,23 @@ func uuidFromPath(ctx *gin.Context, param string) (uuid.UUID, error) {
 }
 
 var domainErrStatusMap = map[string]int{
-	model.ErrCoverNotFound.Code:          http.StatusNotFound,
-	model.ErrChapterNotFound.Code:        http.StatusNotFound,
 	model.ErrMangaNotFound.Code:          http.StatusNotFound,
+	model.ErrMangaAlreadyExists.Code:     http.StatusConflict,
 	model.ErrInvalidTitle.Code:           http.StatusBadRequest,
 	model.ErrInvalidStatus.Code:          http.StatusBadRequest,
 	model.ErrInvalidVolume.Code:          http.StatusBadRequest,
-	model.ErrChapterAlreadyExists.Code:   http.StatusBadRequest,
-	model.ErrVolumeAlreadyExists.Code:    http.StatusBadRequest,
-	model.ErrPageNotFound.Code:           http.StatusBadRequest, // page not found can be caused by invalid staging object name or the staging object does not belong to the user
+	model.ErrChapterNotFound.Code:        http.StatusNotFound,
+	model.ErrChapterAlreadyExists.Code:   http.StatusConflict,
+	model.ErrInvalidChapterNumber.Code:   http.StatusBadRequest,
+	model.ErrVolumeAlreadyExists.Code:    http.StatusConflict,
+	model.ErrMultiplePrimaryCovers.Code:  http.StatusConflict,
+	model.ErrCoverNotFound.Code:          http.StatusNotFound,
 	model.ErrUnsupportedImageFormat.Code: http.StatusBadRequest,
+	model.ErrEmptyPages.Code:             http.StatusBadRequest,
+	model.ErrPageNotFound.Code:           http.StatusNotFound,
+	model.ErrInvalidPageWidth.Code:       http.StatusBadRequest,
+	model.ErrInvalidPageHeight.Code:      http.StatusBadRequest,
+	model.ErrEmptyPageObjectName.Code:    http.StatusBadRequest,
 }
 
 func toHTTPStatusCode(err error) int {
