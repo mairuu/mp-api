@@ -192,7 +192,7 @@ func (r *GormRepository) SaveChapter(ctx context.Context, c *model.Chapter) erro
 
 		// sync pages
 		// delete and re-insert
-		err = tx.Where("chapter_id = ?", c.ID).Delete(&PageDB{}).Error
+		err = tx.Where("chapter_id = ?", c.ID).Delete(&ChapterPageDB{}).Error
 		if err != nil {
 			return fmt.Errorf("delete existing pages: %w", err)
 		}

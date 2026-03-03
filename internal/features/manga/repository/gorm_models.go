@@ -117,7 +117,7 @@ type ChapterDB struct {
 	Volume    *decimal.Decimal `gorm:"type:decimal(10, 4)"`
 	Number    decimal.Decimal  `gorm:"type:decimal(10, 4);not null;uniqueIndex:idx_manga_number"`
 	State     string           `gorm:"type:varchar(10);not null;index:idx_state"`
-	Pages     []PageDB         `gorm:"foreignKey:ChapterID;constraint:OnDelete:CASCADE;"`
+	Pages     []ChapterPageDB  `gorm:"foreignKey:ChapterID;constraint:OnDelete:CASCADE;"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -127,7 +127,7 @@ func (c *ChapterDB) TableName() string {
 }
 
 func toChapterDB(c *model.Chapter) ChapterDB {
-	pages := make([]PageDB, 0, len(c.Pages))
+	pages := make([]ChapterPageDB, 0, len(c.Pages))
 	for i := range c.Pages {
 		pages = append(pages, toPageDB(&c.Pages[i], c.ID, i+1))
 	}
@@ -182,7 +182,7 @@ func (cdb *ChapterDB) toChapterModel() model.Chapter {
 	}
 }
 
-type PageDB struct {
+type ChapterPageDB struct {
 	ChapterID  uuid.UUID `gorm:"type:uuid;primaryKey"`
 	Number     int       `gorm:"type:int;primaryKey"`
 	Width      int       `gorm:"type:int;not null"`
@@ -190,12 +190,12 @@ type PageDB struct {
 	ObjectName string    `gorm:"type:varchar(255);not null"`
 }
 
-func (p *PageDB) TableName() string {
-	return "pages"
+func (p *ChapterPageDB) TableName() string {
+	return "chapter_pages"
 }
 
-func toPageDB(page *model.ChapterPage, chapterID uuid.UUID, number int) PageDB {
-	return PageDB{
+func toPageDB(page *model.ChapterPage, chapterID uuid.UUID, number int) ChapterPageDB {
+	return ChapterPageDB{
 		ChapterID:  chapterID,
 		Number:     number,
 		Width:      page.Width,
@@ -204,7 +204,7 @@ func toPageDB(page *model.ChapterPage, chapterID uuid.UUID, number int) PageDB {
 	}
 }
 
-func (pdb *PageDB) toPageModel() model.ChapterPage {
+func (pdb *ChapterPageDB) toPageModel() model.ChapterPage {
 	return model.ChapterPage{
 		Width:      pdb.Width,
 		Height:     pdb.Height,
