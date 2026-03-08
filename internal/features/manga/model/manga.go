@@ -22,7 +22,6 @@ type Manga struct {
 type MangaStatus string
 
 const (
-	MangaStatusDraft     MangaStatus = "draft"
 	MangaStatusOngoing   MangaStatus = "ongoing"
 	MangaStatusCompleted MangaStatus = "completed"
 	MangaStatusHiatus    MangaStatus = "hiatus"
@@ -165,7 +164,7 @@ func (u *MangaUpdater) Apply() error {
 
 func (status MangaStatus) IsValid() bool {
 	switch status {
-	case MangaStatusDraft, MangaStatusOngoing, MangaStatusCompleted, MangaStatusHiatus, MangaStatusCancelled:
+	case MangaStatusOngoing, MangaStatusCompleted, MangaStatusHiatus, MangaStatusCancelled:
 		return true
 	default:
 		return false
