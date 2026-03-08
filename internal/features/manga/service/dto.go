@@ -10,10 +10,10 @@ type CreateMangaDTO struct {
 }
 
 type CreateCoverArtDTO struct {
-	Volume      string `json:"volume"`
-	IsPrimary   bool   `json:"is_primary"`
-	ObjectName  string `json:"object_name" binding:"required"`
-	Description string `json:"description"`
+	ObjectName  string  `json:"object_name" binding:"required"`
+	Volume      *string `json:"volume"`
+	IsPrimary   *bool   `json:"is_primary"`
+	Description *string `json:"description"`
 }
 
 type UpdateMangaDTO struct {
@@ -35,10 +35,10 @@ type MangaDTO struct {
 }
 
 type CoverArtDTO struct {
-	Volume      string `json:"volume"`
-	IsPrimary   bool   `json:"is_primary"`
-	Description string `json:"description"`
-	ObjectName  string `json:"object_name"`
+	ObjectName  string  `json:"object_name"`
+	IsPrimary   bool    `json:"is_primary"`
+	Volume      *string `json:"volume"`
+	Description *string `json:"description"`
 }
 
 type MangaSummaryDTO struct {

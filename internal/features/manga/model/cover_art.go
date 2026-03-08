@@ -1,21 +1,21 @@
 package model
 
-// todo: make volume a nullable
 type CoverArt struct {
-	IsPrimary   bool   // takes precedence over volume when determining primary cover
-	Volume      string // unique per manga, except for null/empty values which are allowed to have multiple entries
 	ObjectName  string
-	Description string
+	IsPrimary   bool    // takes precedence over volume when determining primary cover
+	Volume      *string // unique per manga, except for null value which are allowed to have multiple entries
+	Description *string
 }
 
-func NewCoverArt(volume, objectName, description string, isPrimary bool) (*CoverArt, error) {
-	if err := validateVolume(&volume); err != nil {
+func NewCoverArt(objectName string, isPrimary bool, volume, description *string) (*CoverArt, error) {
+	if err := validateVolume(volume); err != nil {
 		return nil, err
 	}
+
 	return &CoverArt{
+		ObjectName:  objectName,
 		Volume:      volume,
 		IsPrimary:   isPrimary,
-		ObjectName:  objectName,
 		Description: description,
 	}, nil
 }
@@ -32,16 +32,16 @@ func validateCoverArts(covers []CoverArt) error {
 			foundPrimary = true
 		}
 
-		if cover.Volume == "" {
-			continue
+		if cover.Volume != nil {
+			v := *cover.Volume
+			if err := validateVolume(&v); err != nil {
+				return err
+			}
+			if uniqueVolumes[v] {
+				return ErrVolumeAlreadyExists.WithArg("volume", v)
+			}
+			uniqueVolumes[v] = true
 		}
-		if err := validateVolume(&cover.Volume); err != nil {
-			return err
-		}
-		if uniqueVolumes[cover.Volume] {
-			return ErrVolumeAlreadyExists.WithArg("volume", cover.Volume)
-		}
-		uniqueVolumes[cover.Volume] = true
 	}
 
 	return nil

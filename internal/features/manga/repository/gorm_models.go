@@ -66,10 +66,10 @@ func (mdb *MangaDB) toMangaModel() model.Manga {
 type CoverArtDB struct {
 	MangaID     uuid.UUID        `gorm:"type:uuid;primaryKey"`
 	Order       int              `gorm:"type:int;primaryKey"`
+	ObjectName  string           `gorm:"type:varchar(255);not null"`
 	IsPrimary   bool             `gorm:"type:boolean;not null;default:false"`
 	Volume      *decimal.Decimal `gorm:"type:decimal(10,4)"`
-	ObjectName  string           `gorm:"type:varchar(255);not null"`
-	Description string           `gorm:"type:text"`
+	Description *string          `gorm:"type:text"`
 }
 
 func (c *CoverArtDB) TableName() string {
@@ -78,8 +78,8 @@ func (c *CoverArtDB) TableName() string {
 
 func toCoverArtDB(cover *model.CoverArt, mangaID uuid.UUID) CoverArtDB {
 	var vol *decimal.Decimal
-	if cover.Volume != "" {
-		v, err := decimal.NewFromString(cover.Volume)
+	if cover.Volume != nil {
+		v, err := decimal.NewFromString(*cover.Volume)
 		if err == nil {
 			vol = &v
 		}
@@ -94,10 +94,10 @@ func toCoverArtDB(cover *model.CoverArt, mangaID uuid.UUID) CoverArtDB {
 }
 
 func (cdb *CoverArtDB) toCoverArtModel() model.CoverArt {
-	var vol string
+	var vol *string
 	if cdb.Volume != nil {
 		v := cdb.Volume.String()
-		vol = v
+		vol = &v
 	}
 	return model.CoverArt{
 		IsPrimary:   cdb.IsPrimary,

@@ -21,9 +21,13 @@ func (s *Service) CreateManga(ctx context.Context, ur *app.UserRole, req CreateM
 
 	covers := make([]model.CoverArt, len(req.Covers))
 	for i, c := range req.Covers {
+		isPrimary := false
+		if c.IsPrimary != nil {
+			isPrimary = *c.IsPrimary
+		}
 		covers[i] = model.CoverArt{
 			Volume:      c.Volume,
-			IsPrimary:   c.IsPrimary,
+			IsPrimary:   isPrimary,
 			ObjectName:  c.ObjectName,
 			Description: c.Description,
 		}
@@ -187,7 +191,11 @@ func (s *Service) processCoverArtChanges(existing []model.CoverArt, dtos *[]Upda
 	// convert
 	newCovers := make([]model.CoverArt, 0, len(*dtos))
 	for _, dto := range *dtos {
-		cv, err := model.NewCoverArt(dto.Volume, dto.ObjectName, dto.Description, dto.IsPrimary)
+		isPrimary := false
+		if dto.IsPrimary != nil {
+			isPrimary = *dto.IsPrimary
+		}
+		cv, err := model.NewCoverArt(dto.ObjectName, isPrimary, dto.Volume, dto.Description)
 		if err != nil {
 			return nil, err
 		}
@@ -196,8 +204,8 @@ func (s *Service) processCoverArtChanges(existing []model.CoverArt, dtos *[]Upda
 
 	differ := collections.IdentifiableDiffer[string, model.CoverArt]{
 		GetKey: func(c *model.CoverArt) string {
-			if c.Volume != "" {
-				return c.Volume
+			if c.Volume != nil {
+				return *c.Volume
 			}
 			return c.ObjectName
 		},

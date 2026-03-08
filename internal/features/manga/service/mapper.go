@@ -1,8 +1,6 @@
 package service
 
 import (
-	"fmt"
-	"slices"
 	"time"
 
 	"github.com/mairuu/mp-api/internal/features/manga/model"
@@ -35,26 +33,34 @@ func (mp *mapper) ToMangaDTO(m *model.Manga) MangaDTO {
 		sorted = append(sorted, &m.Covers[i])
 	}
 
-	slices.SortFunc(sorted, func(a, b *model.CoverArt) int {
-		// pad zeros
-		aFormat := fmt.Sprintf("%010s", a.Volume)
-		bFormat := fmt.Sprintf("%010s", b.Volume)
+	// slices.SortFunc(sorted, func(a, b *model.CoverArt) int {
+	// 	// pad zeros
+	// 	va := ""
+	// 	vb := ""
+	// 	if a.Volume != nil {
+	// 		va = *a.Volume
+	// 	}
+	// 	if b.Volume != nil {
+	// 		vb = *b.Volume
+	// 	}
+	// 	aFormat := fmt.Sprintf("%010s", va)
+	// 	bFormat := fmt.Sprintf("%010s", vb)
 
-		if aFormat < bFormat {
-			return -1
-		} else if aFormat > bFormat {
-			return 1
-		}
-		return 0
-	})
+	// 	if aFormat < bFormat {
+	// 		return -1
+	// 	} else if aFormat > bFormat {
+	// 		return 1
+	// 	}
+	// 	return 0
+	// })
 
 	covers := make([]CoverArtDTO, 0, len(m.Covers))
 	for i := range sorted {
 		covers = append(covers, CoverArtDTO{
-			Volume:      sorted[i].Volume,
-			IsPrimary:   sorted[i].IsPrimary,
-			Description: sorted[i].Description,
 			ObjectName:  sorted[i].ObjectName,
+			IsPrimary:   sorted[i].IsPrimary,
+			Volume:      sorted[i].Volume,
+			Description: sorted[i].Description,
 		})
 	}
 
