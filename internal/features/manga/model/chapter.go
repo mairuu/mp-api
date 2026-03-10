@@ -28,31 +28,26 @@ const (
 )
 
 func NewChapter(mangaID uuid.UUID, number string, title, volume *string, pages []ChapterPage) (*Chapter, error) {
-	if err := validateTitle(title); err != nil {
-		return nil, err
+	now := time.Now()
+	c := &Chapter{
+		ID:        uuid.New(),
+		MangaID:   mangaID,
+		UpdatedAt: now,
+		CreatedAt: now,
 	}
-	if err := validateVolume(volume); err != nil {
-		return nil, err
-	}
-	if err := validateNumber(&number); err != nil {
-		return nil, err
-	}
-	if err := validatePages(pages); err != nil {
+
+	err := c.Updater().
+		Title(title).
+		Volume(volume).
+		Number(&number).
+		State(&c.State).
+		Pages(pages).
+		Apply()
+	if err != nil {
 		return nil, err
 	}
 
-	now := time.Now()
-	return &Chapter{
-		ID:        uuid.New(),
-		MangaID:   mangaID,
-		Title:     title,
-		Volume:    volume,
-		Number:    number,
-		State:     ChapterStatePublish,
-		Pages:     pages,
-		UpdatedAt: now,
-		CreatedAt: now,
-	}, nil
+	return c, nil
 }
 
 func (c *Chapter) Updater() *ChapterUpdater {

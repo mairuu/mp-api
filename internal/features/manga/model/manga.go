@@ -29,31 +29,25 @@ const (
 )
 
 func NewManga(ownerID uuid.UUID, title, synopsis string, status MangaStatus, covers []CoverArt) (*Manga, error) {
-	if err := validateTitle(&title); err != nil {
-		return nil, err
-	}
-	if err := validateSynopsis(synopsis); err != nil {
-		return nil, err
-	}
-	if err := validateStatus(status); err != nil {
-		return nil, err
-	}
-	if err := validateCoverArts(covers); err != nil {
-		return nil, err
-	}
-
 	now := time.Now()
-
-	return &Manga{
+	m := &Manga{
 		ID:        uuid.New(),
 		OwnerID:   ownerID,
-		Title:     title,
-		Synopsis:  synopsis,
-		Status:    status,
-		Covers:    covers,
 		UpdatedAt: now,
 		CreatedAt: now,
-	}, nil
+	}
+
+	err := m.Updater().
+		Title(&title).
+		Synopsis(&synopsis).
+		Status(&status).
+		CoverArts(covers).
+		Apply()
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }
 
 func (m *Manga) GetPrimaryCover() *CoverArt {
