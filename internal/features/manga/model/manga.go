@@ -213,3 +213,30 @@ func validateVolume(volume *string) error {
 	}
 	return nil
 }
+
+func validateCoverArts(covers []CoverArt) error {
+	foundPrimary := false
+	uniqueVolumes := make(map[string]bool)
+
+	for _, cover := range covers {
+		if cover.IsPrimary {
+			if foundPrimary {
+				return ErrMultiplePrimaryCovers
+			}
+			foundPrimary = true
+		}
+
+		if cover.Volume != nil {
+			v := *cover.Volume
+			if err := validateVolume(&v); err != nil {
+				return err
+			}
+			if uniqueVolumes[v] {
+				return ErrVolumeAlreadyExists.WithArg("volume", v)
+			}
+			uniqueVolumes[v] = true
+		}
+	}
+
+	return nil
+}

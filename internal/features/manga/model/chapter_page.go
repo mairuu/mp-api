@@ -31,18 +31,18 @@ func (p ChapterPage) IsStaging() bool {
 }
 
 func validateChapterPage(page *ChapterPage) error {
-	if page.IsStaging() {
-		return nil
-	}
-
-	if page.Width <= 0 {
-		return ErrInvalidPageWidth.WithMessage("page width must be greater than zero")
-	}
-	if page.Height <= 0 {
-		return ErrInvalidPageHeight.WithMessage("page height must be greater than zero")
-	}
 	if page.ObjectName == "" {
 		return ErrEmptyPageObjectName.WithMessage("page object name cannot be empty")
 	}
+
+	if !page.IsStaging() {
+		if page.Width <= 0 {
+			return ErrInvalidPageWidth.WithMessage("page width must be greater than zero")
+		}
+		if page.Height <= 0 {
+			return ErrInvalidPageHeight.WithMessage("page height must be greater than zero")
+		}
+	}
+
 	return nil
 }

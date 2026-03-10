@@ -26,28 +26,23 @@ func (s *Service) CreateChapter(ctx context.Context, ur *app.UserRole, req Creat
 		return nil, err
 	}
 
-	// temporary pages; needed for validation
-	pages := make([]model.ChapterPage, len(req.Pages))
-	for i, objName := range req.Pages {
-		pages[i] = model.NewStagingChapterPage(objName)
-	}
-	c, err := model.NewChapter(m.ID, req.Number, req.Title, req.Volume, pages)
+	r, err := s.processChapterPageChanges(nil, &req.Pages)
 	if err != nil {
 		return nil, err
 	}
 
-	// staged pages
-	pages = make([]model.ChapterPage, len(c.Pages))
-	for i := range c.Pages {
-		img, err := s.processNewChapterPage(ctx, ur, c.ID, c.Pages[i].ObjectName)
-		if err != nil {
-			return nil, err
-		}
-		pages[i] = model.NewChapterPage(img.objectName, img.width, img.height)
+	c, err := model.NewChapter(m.ID, req.Number, req.Title, req.Volume, r.Merged())
+	if err != nil {
+		return nil, err
+	}
+
+	pages, err := s.processStagingChapterPages(ctx, ur, c)
+	if err != nil {
+		return nil, err
 	}
 
 	err = c.Updater().
-		Pages(&pages).
+		Pages(pages).
 		Apply()
 	if err != nil {
 		return nil, err
@@ -143,26 +138,19 @@ func (s *Service) UpdateChapter(ctx context.Context, ur *app.UserRole, id uuid.U
 		Title(req.Title).
 		Volume(req.Volume).
 		Number(req.Number).
-		Pages(ptr(r.Merged())).
+		Pages(r.Merged()).
 		Apply()
 	if err != nil {
 		return nil, err
 	}
 
-	if len(r.Added) > 0 {
-		for i := range r.Added {
-			img, err := s.processNewChapterPage(ctx, ur, c.ID, r.Added[i].ObjectName)
-			if err != nil {
-				return nil, err
-			}
-			// replace staging page with actual page info after processing
-			p := model.NewChapterPage(img.objectName, img.width, img.height)
-			r.Added[i] = &p
-		}
+	pages, err := s.processStagingChapterPages(ctx, ur, c)
+	if err != nil {
+		return nil, err
 	}
 
 	err = c.Updater().
-		Pages(ptr(r.Merged())).
+		Pages(pages).
 		Apply()
 	if err != nil {
 		return nil, err
@@ -215,6 +203,24 @@ func (s *Service) processChapterPageChanges(existing []model.ChapterPage, dtos *
 	}
 
 	return differ.Diff(existing, newPages)
+}
+
+func (s *Service) processStagingChapterPages(ctx context.Context, ur *app.UserRole, c *model.Chapter) ([]model.ChapterPage, error) {
+	pages := make([]model.ChapterPage, len(c.Pages))
+	for i := range c.Pages {
+		p := &c.Pages[i]
+		if !p.IsStaging() {
+			pages[i] = *p
+			continue
+		}
+
+		img, err := s.processNewChapterPage(ctx, ur, c.ID, p.ObjectName)
+		if err != nil {
+			return nil, err
+		}
+		pages[i] = model.NewChapterPage(img.objectName, img.width, img.height)
+	}
+	return pages, nil
 }
 
 type pageImage struct {

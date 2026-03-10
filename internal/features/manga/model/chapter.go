@@ -119,17 +119,17 @@ func (u *ChapterUpdater) State(state *ChapterState) *ChapterUpdater {
 	return u
 }
 
-func (u *ChapterUpdater) Pages(pages *[]ChapterPage) *ChapterUpdater {
+func (u *ChapterUpdater) Pages(pages []ChapterPage) *ChapterUpdater {
 	if pages == nil {
 		return u
 	}
 	u.opts = append(u.opts, func(c *Chapter) error {
-		if err := validatePages(*pages); err != nil {
+		if err := validatePages(pages); err != nil {
 			if !errors.Is(err, ErrEmptyPages) || len(c.Pages) > 0 {
 				return err
 			}
 		}
-		c.Pages = *pages
+		c.Pages = pages
 		return nil
 	})
 	return u
