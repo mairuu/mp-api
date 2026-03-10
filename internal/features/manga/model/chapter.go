@@ -32,6 +32,7 @@ func NewChapter(mangaID uuid.UUID, number string, title, volume *string, pages [
 	c := &Chapter{
 		ID:        uuid.New(),
 		MangaID:   mangaID,
+		State:     ChapterStatePublish, // todo: default to draft and require explicit publish action
 		UpdatedAt: now,
 		CreatedAt: now,
 	}
@@ -40,7 +41,6 @@ func NewChapter(mangaID uuid.UUID, number string, title, volume *string, pages [
 		Title(title).
 		Volume(volume).
 		Number(&number).
-		State(&c.State).
 		Pages(pages).
 		Apply()
 	if err != nil {
