@@ -19,30 +19,26 @@ func (s *Service) CreateManga(ctx context.Context, ur *app.UserRole, req CreateM
 		return nil, err
 	}
 
-	covers := make([]model.CoverArt, len(req.Covers))
-	for i, c := range req.Covers {
-		isPrimary := false
-		if c.IsPrimary != nil {
-			isPrimary = *c.IsPrimary
-		}
-		covers[i] = model.CoverArt{
-			Volume:      c.Volume,
-			IsPrimary:   isPrimary,
-			ObjectName:  c.ObjectName,
-			Description: c.Description,
-		}
-	}
-	m, err := model.NewManga(ur.ID, req.Title, req.Synopsis, model.MangaStatus(req.Status), covers)
+	r, err := s.processCoverArtChanges(nil, &req.Covers)
 	if err != nil {
 		return nil, err
 	}
 
-	for i := range m.Covers {
-		permanentObjectName, err := s.processNewCoverArt(ctx, ur, m.ID, m.Covers[i].ObjectName)
-		if err != nil {
-			return nil, err
-		}
-		m.Covers[i].ObjectName = permanentObjectName
+	m, err := model.NewManga(ur.ID, req.Title, req.Synopsis, model.MangaStatus(req.Status), r.Merged())
+	if err != nil {
+		return nil, err
+	}
+
+	covers, err := s.processStagingCoverArts(ctx, m, ur)
+	if err != nil {
+		return nil, err
+	}
+
+	err = m.Updater().
+		CoverArts(covers).
+		Apply()
+	if err != nil {
+		return nil, err
 	}
 
 	if err := s.repo.SaveManga(ctx, m); err != nil {
@@ -122,23 +118,19 @@ func (s *Service) UpdateManga(ctx context.Context, ur *app.UserRole, id uuid.UUI
 		Title(req.Title).
 		Synopsis(req.Synopsis).
 		Status((*model.MangaStatus)(req.Status)).
-		CoverArts(r.Merged()). // for validation of cover arts before processing new ones
+		CoverArts(r.Merged()).
 		Apply()
 	if err != nil {
 		return nil, err
 	}
 
-	// stage new cover arts
-	for _, c := range r.Added {
-		permanentObjectName, err := s.processNewCoverArt(ctx, ur, m.ID, c.ObjectName)
-		if err != nil {
-			return nil, err
-		}
-		c.ObjectName = permanentObjectName
+	covers, err := s.processStagingCoverArts(ctx, m, ur)
+	if err != nil {
+		return nil, err
 	}
 
 	err = m.Updater().
-		CoverArts(r.Merged()).
+		CoverArts(covers).
 		Apply()
 	if err != nil {
 		return nil, err
@@ -195,7 +187,7 @@ func (s *Service) processCoverArtChanges(existing []model.CoverArt, dtos *[]Upda
 		if dto.IsPrimary != nil {
 			isPrimary = *dto.IsPrimary
 		}
-		cv, err := model.NewCoverArt(dto.ObjectName, isPrimary, dto.Volume, dto.Description)
+		cv, err := model.NewStagingCoverArt(dto.ObjectName, isPrimary, dto.Volume, dto.Description)
 		if err != nil {
 			return nil, err
 		}
@@ -210,12 +202,17 @@ func (s *Service) processCoverArtChanges(existing []model.CoverArt, dtos *[]Upda
 			return c.ObjectName
 		},
 		AddItem: func(existings []model.CoverArt, adding *model.CoverArt) (added *model.CoverArt, toUpdate *model.CoverArt, toDelete *model.CoverArt, err error) {
-			// check if this object already exists with a different volume (volume rename scenario)
+			// check if this object already exists with a different volume (volume changed scenario)
 			for i := range existings {
-				if existings[i].ObjectName == adding.ObjectName {
-					// same object, different volume; treat as update
-					return nil, adding, nil, nil
+				if existings[i].ObjectName != adding.ObjectName {
+					continue
 				}
+				// same object, different volume; treat as update
+				updated, err := adding.ToStaged(adding.ObjectName)
+				if err != nil {
+					return nil, nil, nil, err
+				}
+				return nil, updated, nil, nil
 			}
 			// truly new cover
 			return adding, nil, nil, nil
@@ -224,14 +221,15 @@ func (s *Service) processCoverArtChanges(existing []model.CoverArt, dtos *[]Upda
 			// if object name changed, treat as replacement (delete old + add new)
 			if existing.ObjectName != updating.ObjectName {
 				// return: updated=nil, toAdd=updating, toDelete=old (for cleanup)
-				return nil, updating, &model.CoverArt{ObjectName: existing.ObjectName}, nil
+				return nil, updating, existing, nil
 			}
 
-			// otherwise, it's a simple update (description might have changed)
-			updated := *existing
-			updated.IsPrimary = updating.IsPrimary
-			updated.Description = updating.Description
-			return &updated, nil, nil, nil
+			// otherwise, it's a simple update
+			updated, err := updating.ToStaged(existing.ObjectName)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			return updated, nil, nil, nil
 		},
 		DeleteItem: func(new []model.CoverArt, deleting *model.CoverArt) (deleted *model.CoverArt, toAdd *model.CoverArt, toUpdate *model.CoverArt, err error) {
 			for i := range new {
@@ -245,12 +243,29 @@ func (s *Service) processCoverArtChanges(existing []model.CoverArt, dtos *[]Upda
 		},
 	}
 
-	result, err := differ.Diff(existing, newCovers)
-	if err != nil {
-		return nil, err
-	}
+	return differ.Diff(existing, newCovers)
+}
 
-	return result, nil
+func (s *Service) processStagingCoverArts(ctx context.Context, m *model.Manga, ur *app.UserRole) ([]model.CoverArt, error) {
+	covers := make([]model.CoverArt, len(m.Covers))
+	for i := range m.Covers {
+		c := &m.Covers[i]
+		if !c.IsStaging() {
+			covers[i] = *c
+			continue
+		}
+
+		permanentObjectName, err := s.processNewCoverArt(ctx, ur, m.ID, c.ObjectName)
+		if err != nil {
+			return nil, err
+		}
+		c, err = c.ToStaged(permanentObjectName)
+		if err != nil {
+			return nil, err
+		}
+		covers[i] = *c
+	}
+	return covers, nil
 }
 
 var coverImageSpecs = []struct {
