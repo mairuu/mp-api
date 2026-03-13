@@ -22,16 +22,18 @@ func (q *MangaListQuery) ToOrdering() []repo.Ordering {
 }
 
 type MangaFilterQuery struct {
-	IDs    []string `form:"ids[]"`
-	Title  *string  `form:"title"`
-	Status *string  `form:"status"`
+	IDs      []string `form:"ids[]"`
+	OwnerIDs []string `form:"owner_ids[]"`
+	Title    *string  `form:"title"`
+	Status   *string  `form:"status"`
 }
 
 func (f *MangaFilterQuery) ToMangaFilter() repo.MangaFilter {
 	return repo.MangaFilter{
-		IDs:    f.IDs,
-		Title:  f.Title,
-		Status: f.Status,
+		IDs:      f.IDs,
+		OwnerIDs: f.OwnerIDs,
+		Title:    f.Title,
+		Status:   f.Status,
 	}
 }
 

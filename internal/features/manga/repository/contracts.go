@@ -24,10 +24,10 @@ type Repository interface {
 }
 
 type MangaFilter struct {
-	IDs    []string
-	Title  *string
-	Status *string
-	State  *string
+	IDs      []string
+	OwnerIDs []string
+	Title    *string
+	Status   *string
 }
 
 type ChapterFilter struct {

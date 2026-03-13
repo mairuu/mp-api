@@ -283,14 +283,18 @@ func applyMangaFilter(q *gorm.DB, filter MangaFilter) *gorm.DB {
 			q = q.Where("id IN ?", filter.IDs)
 		}
 	}
+	if len(filter.OwnerIDs) > 0 {
+		if len(filter.OwnerIDs) == 1 {
+			q = q.Where("owner_id = ?", filter.OwnerIDs[0])
+		} else {
+			q = q.Where("owner_id IN ?", filter.OwnerIDs)
+		}
+	}
 	if filter.Title != nil {
 		q = q.Where("title ILIKE ?", "%"+*filter.Title+"%")
 	}
 	if filter.Status != nil {
 		q = q.Where("status = ?", *filter.Status)
-	}
-	if filter.State != nil {
-		q = q.Where("state = ?", *filter.State)
 	}
 	return q
 }
