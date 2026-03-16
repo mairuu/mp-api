@@ -1,6 +1,7 @@
 package main
 
 import (
+	libraryrepo "github.com/mairuu/mp-api/internal/features/library/repository"
 	mangarepo "github.com/mairuu/mp-api/internal/features/manga/repository"
 	userrepo "github.com/mairuu/mp-api/internal/features/user/repository"
 	"github.com/mairuu/mp-api/internal/platform/config"
@@ -29,6 +30,7 @@ func main() {
 		&mangarepo.CoverArtDB{},
 		&mangarepo.ChapterDB{},
 		&mangarepo.ChapterPageDB{},
+		&libraryrepo.LibraryMangaDB{},
 	}
 	if err := db.AutoMigrate(allModels...); err != nil {
 		log.Error("failed to migrate database", "error", err)

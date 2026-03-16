@@ -11,6 +11,10 @@ import (
 	buckethandler "github.com/mairuu/mp-api/internal/features/bucket/handler"
 	bucket "github.com/mairuu/mp-api/internal/features/bucket/model"
 	bucketservice "github.com/mairuu/mp-api/internal/features/bucket/service"
+	libraryhandler "github.com/mairuu/mp-api/internal/features/library/handler"
+	library "github.com/mairuu/mp-api/internal/features/library/model"
+	libraryrepo "github.com/mairuu/mp-api/internal/features/library/repository"
+	libraryservice "github.com/mairuu/mp-api/internal/features/library/service"
 	mangahandler "github.com/mairuu/mp-api/internal/features/manga/handler"
 	manga "github.com/mairuu/mp-api/internal/features/manga/model"
 	mangarepo "github.com/mairuu/mp-api/internal/features/manga/repository"
@@ -75,6 +79,7 @@ func main() {
 		bucket.AllPolicies(),
 		user.AllPolicies(),
 		manga.AllPolicies(),
+		library.AllPolicies(),
 	)
 	if err != nil {
 		log.Error("failed to add policies to enforcer", "error", err)
@@ -84,10 +89,12 @@ func main() {
 	tokenService := authentication.NewTokenService(cfg.JWT.Secret, cfg.JWT.AccessTokenTTL, cfg.JWT.RefreshTokenTTL)
 	userRepo := userrepo.NewGormRepository(db)
 	mangaRepo := mangarepo.NewGormRepository(db)
+	libraryRepo := libraryrepo.NewGormRepository(db)
 
 	bucketService := bucketservice.NewService(enforcer, temporaryBucket)
 	userService := userservice.NewService(userRepo, tokenService, enforcer)
 	mangaService := mangaservice.NewService(log, mangaRepo, enforcer, publicBucket, temporaryBucket)
+	libraryService := libraryservice.NewService(libraryRepo)
 
 	r := gin.New()
 	r.SetTrustedProxies(nil)
@@ -103,6 +110,7 @@ func main() {
 		buckethandler.NewBucketHandler(log, bucketService),
 		userhandler.NewUserHandler(log, userService),
 		mangahandler.NewHandler(log, mangaService),
+		libraryhandler.NewHandler(log, libraryService),
 	})
 	router.RegisterRoutes()
 
