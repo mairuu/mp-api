@@ -1,4 +1,4 @@
-package repository
+package repositories
 
 import (
 	"context"
@@ -6,39 +6,45 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mairuu/mp-api/internal/features/library/model"
+	libraryrepo "github.com/mairuu/mp-api/internal/features/library/repository"
+	"github.com/mairuu/mp-api/internal/persistence/mappers"
+	"github.com/mairuu/mp-api/internal/persistence/models"
 	"github.com/mairuu/mp-api/internal/platform/collections"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
-type GormRepository struct {
+type LibraryRepository struct {
 	db *gorm.DB
 }
 
-func NewGormRepository(db *gorm.DB) *GormRepository {
-	return &GormRepository{db: db}
+// verify it implements the interface
+var _ libraryrepo.Repository = (*LibraryRepository)(nil)
+
+func NewLibraryRepository(db *gorm.DB) *LibraryRepository {
+	return &LibraryRepository{db: db}
 }
 
-func (r *GormRepository) SaveLibrary(ctx context.Context, lib *model.Library) error {
+func (r *LibraryRepository) SaveLibrary(ctx context.Context, lib *model.Library) error {
 	if lib == nil {
 		return fmt.Errorf("library is nil")
 	}
 
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		dbs, err := gorm.G[LibraryMangaDB](r.db).
+		dbs, err := gorm.G[models.LibraryMangaDB](r.db).
 			Where("owner_id = ?", lib.OwnerID).
 			Find(ctx)
 		if err != nil {
 			return fmt.Errorf("fetch existing library mangas: %w", err)
 		}
 
-		mangas := make([]LibraryMangaDB, len(lib.Mangas))
+		mangas := make([]models.LibraryMangaDB, len(lib.Mangas))
 		for i, m := range lib.Mangas {
-			mangas[i] = toLibraryMangaDB(&m, lib.OwnerID)
+			mangas[i] = mappers.ToLibraryMangaDB(&m, lib.OwnerID)
 		}
 
-		differ := collections.IdentifiableDiffer[uuid.UUID, LibraryMangaDB]{
-			GetKey: func(l *LibraryMangaDB) uuid.UUID {
+		differ := collections.IdentifiableDiffer[uuid.UUID, models.LibraryMangaDB]{
+			GetKey: func(l *models.LibraryMangaDB) uuid.UUID {
 				return l.MangaID
 			},
 		}
@@ -72,7 +78,7 @@ func (r *GormRepository) SaveLibrary(ctx context.Context, lib *model.Library) er
 				mangaIDs = append(mangaIDs, m.MangaID)
 			}
 
-			err = tx.Where("owner_id = ? AND manga_id IN ?", lib.OwnerID, mangaIDs).Delete(&LibraryMangaDB{}).Error
+			err = tx.Where("owner_id = ? AND manga_id IN ?", lib.OwnerID, mangaIDs).Delete(&models.LibraryMangaDB{}).Error
 			if err != nil {
 				return fmt.Errorf("delete library mangas: %w", err)
 			}
@@ -82,8 +88,8 @@ func (r *GormRepository) SaveLibrary(ctx context.Context, lib *model.Library) er
 	})
 }
 
-func (r *GormRepository) GetLibrary(ctx context.Context, ownerID uuid.UUID) (*model.Library, error) {
-	dbs, err := gorm.G[*LibraryMangaDB](r.db).
+func (r *LibraryRepository) GetLibrary(ctx context.Context, ownerID uuid.UUID) (*model.Library, error) {
+	dbs, err := gorm.G[*models.LibraryMangaDB](r.db).
 		Where("owner_id = ?", ownerID).
 		Find(ctx)
 	if err != nil {
@@ -95,14 +101,14 @@ func (r *GormRepository) GetLibrary(ctx context.Context, ownerID uuid.UUID) (*mo
 		Mangas:  make([]model.LibraryManga, 0, len(dbs)),
 	}
 	for _, db := range dbs {
-		lib.Mangas = append(lib.Mangas, toLibraryMangaModel(db))
+		lib.Mangas = append(lib.Mangas, mappers.ToLibraryMangaModel(db))
 	}
 
 	return lib, nil
 }
 
-func (r *GormRepository) GetLibrarySummary(ctx context.Context, ownerID uuid.UUID) (*LibrarySummary, error) {
-	count, err := gorm.G[*LibraryMangaDB](r.db).
+func (r *LibraryRepository) GetLibrarySummary(ctx context.Context, ownerID uuid.UUID) (*libraryrepo.LibrarySummary, error) {
+	count, err := gorm.G[*models.LibraryMangaDB](r.db).
 		Where("owner_id = ?", ownerID).
 		Count(ctx, "*")
 	if err != nil {
@@ -116,14 +122,7 @@ func (r *GormRepository) GetLibrarySummary(ctx context.Context, ownerID uuid.UUI
 		return nil, fmt.Errorf("get library summary tags: %w", err)
 	}
 
-	// wip:
-	// in case ^above is not working
-	// type tagRow struct{ Tag string }
-	// rows, err := gorm.G[tagRow](r.db).Raw(...).Find(ctx)
-	// tags := make([]string, len(rows))
-	// for i, r := range rows { tags[i] = r.Tag }
-
-	return &LibrarySummary{
+	return &libraryrepo.LibrarySummary{
 		Tags:        tags,
 		TotalMangas: int(count),
 	}, nil

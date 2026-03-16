@@ -13,16 +13,14 @@ import (
 	bucketservice "github.com/mairuu/mp-api/internal/features/bucket/service"
 	libraryhandler "github.com/mairuu/mp-api/internal/features/library/handler"
 	library "github.com/mairuu/mp-api/internal/features/library/model"
-	libraryrepo "github.com/mairuu/mp-api/internal/features/library/repository"
 	libraryservice "github.com/mairuu/mp-api/internal/features/library/service"
 	mangahandler "github.com/mairuu/mp-api/internal/features/manga/handler"
 	manga "github.com/mairuu/mp-api/internal/features/manga/model"
-	mangarepo "github.com/mairuu/mp-api/internal/features/manga/repository"
 	mangaservice "github.com/mairuu/mp-api/internal/features/manga/service"
 	userhandler "github.com/mairuu/mp-api/internal/features/user/handler"
 	user "github.com/mairuu/mp-api/internal/features/user/model"
-	userrepo "github.com/mairuu/mp-api/internal/features/user/repository"
 	userservice "github.com/mairuu/mp-api/internal/features/user/service"
+	"github.com/mairuu/mp-api/internal/persistence/repositories"
 	"github.com/mairuu/mp-api/internal/platform/authentication"
 	"github.com/mairuu/mp-api/internal/platform/authorization"
 	"github.com/mairuu/mp-api/internal/platform/config"
@@ -87,9 +85,9 @@ func main() {
 	}
 
 	tokenService := authentication.NewTokenService(cfg.JWT.Secret, cfg.JWT.AccessTokenTTL, cfg.JWT.RefreshTokenTTL)
-	userRepo := userrepo.NewGormRepository(db)
-	mangaRepo := mangarepo.NewGormRepository(db)
-	libraryRepo := libraryrepo.NewGormRepository(db)
+	userRepo := repositories.NewUserRepository(db)
+	mangaRepo := repositories.NewMangaRepository(db)
+	libraryRepo := repositories.NewLibraryRepository(db)
 
 	bucketService := bucketservice.NewService(enforcer, temporaryBucket)
 	userService := userservice.NewService(userRepo, tokenService, enforcer)

@@ -1,4 +1,4 @@
-package repository
+package repositories
 
 import (
 	"context"
@@ -7,26 +7,31 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/mairuu/mp-api/internal/features/user/model"
+	userrepo "github.com/mairuu/mp-api/internal/features/user/repository"
+	"github.com/mairuu/mp-api/internal/persistence/mappers"
+	"github.com/mairuu/mp-api/internal/persistence/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-
-	"github.com/mairuu/mp-api/internal/features/user/model"
 )
 
-type GormRepository struct {
+type UserRepository struct {
 	db *gorm.DB
 }
 
-func NewGormRepository(db *gorm.DB) *GormRepository {
-	return &GormRepository{db: db}
+// verify it implements the interface
+var _ userrepo.Repository = (*UserRepository)(nil)
+
+func NewUserRepository(db *gorm.DB) *UserRepository {
+	return &UserRepository{db: db}
 }
 
-func (r *GormRepository) SaveUser(ctx context.Context, u *model.User) error {
+func (r *UserRepository) SaveUser(ctx context.Context, u *model.User) error {
 	if u == nil {
 		return fmt.Errorf("user is nil")
 	}
 
-	udb := toUserDB(u)
+	udb := mappers.ToUserDB(u)
 	err := r.db.WithContext(ctx).
 		Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "id"}},
@@ -52,32 +57,32 @@ func (r *GormRepository) SaveUser(ctx context.Context, u *model.User) error {
 	return nil
 }
 
-func (r *GormRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
-	udb, err := gorm.G[UserDB](r.db).Where("id = ?", id).First(ctx)
+func (r *UserRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
+	udb, err := gorm.G[models.UserDB](r.db).Where("id = ?", id).First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, model.ErrUserNotFound.WithArg("id", id.String())
 		}
 		return nil, fmt.Errorf("get user by id: %w", err)
 	}
-	u := toUserModel(&udb)
+	u := mappers.UserDBToModel(&udb)
 	return &u, nil
 }
 
-func (r *GormRepository) GetUserByEmailOrUsername(ctx context.Context, emailOrUsername string) (*model.User, error) {
-	udb, err := gorm.G[UserDB](r.db).Where("email = ? OR username = ?", emailOrUsername, emailOrUsername).First(ctx)
+func (r *UserRepository) GetUserByEmailOrUsername(ctx context.Context, emailOrUsername string) (*model.User, error) {
+	udb, err := gorm.G[models.UserDB](r.db).Where("email = ? OR username = ?", emailOrUsername, emailOrUsername).First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, model.ErrUserNotFound.WithArg("email_or_username", emailOrUsername)
 		}
 		return nil, fmt.Errorf("get user by email or username: %w", err)
 	}
-	u := toUserModel(&udb)
+	u := mappers.UserDBToModel(&udb)
 	return &u, nil
 }
 
-func (r *GormRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
-	affected, err := gorm.G[UserDB](r.db).Where("id = ?", id).Delete(ctx)
+func (r *UserRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	affected, err := gorm.G[models.UserDB](r.db).Where("id = ?", id).Delete(ctx)
 	if err != nil {
 		return fmt.Errorf("delete user: %w", err)
 	}
@@ -87,29 +92,29 @@ func (r *GormRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (r *GormRepository) SaveRefreshToken(ctx context.Context, rt *model.RefreshToken) error {
-	rtdb := toRefreshTokenDB(rt)
+func (r *UserRepository) SaveRefreshToken(ctx context.Context, rt *model.RefreshToken) error {
+	rtdb := mappers.ToRefreshTokenDB(rt)
 	if err := r.db.WithContext(ctx).Create(&rtdb).Error; err != nil {
 		return fmt.Errorf("save refresh token: %w", err)
 	}
 	return nil
 }
 
-func (r *GormRepository) GetRefreshToken(ctx context.Context, token string) (*model.RefreshToken, error) {
-	rtdb, err := gorm.G[RefreshTokenDB](r.db).Where("token = ?", token).First(ctx)
+func (r *UserRepository) GetRefreshToken(ctx context.Context, token string) (*model.RefreshToken, error) {
+	rtdb, err := gorm.G[models.RefreshTokenDB](r.db).Where("token = ?", token).First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, model.ErrRefreshTokenNotFound
 		}
 		return nil, fmt.Errorf("get refresh token: %w", err)
 	}
-	rt := toRefreshTokenModel(&rtdb)
+	rt := mappers.RefreshTokenDBToModel(&rtdb)
 	return &rt, nil
 }
 
-func (r *GormRepository) RevokeRefreshToken(ctx context.Context, token string) error {
+func (r *UserRepository) RevokeRefreshToken(ctx context.Context, token string) error {
 	now := time.Now()
-	affected, err := gorm.G[RefreshTokenDB](r.db).
+	affected, err := gorm.G[models.RefreshTokenDB](r.db).
 		Where("token = ? AND revoked_at IS NULL", token).
 		Update(ctx, "revoked_at", now)
 	if err != nil {
@@ -121,9 +126,9 @@ func (r *GormRepository) RevokeRefreshToken(ctx context.Context, token string) e
 	return nil
 }
 
-func (r *GormRepository) RevokeAllUserRefreshTokens(ctx context.Context, userID uuid.UUID) error {
+func (r *UserRepository) RevokeAllUserRefreshTokens(ctx context.Context, userID uuid.UUID) error {
 	now := time.Now()
-	_, err := gorm.G[RefreshTokenDB](r.db).
+	_, err := gorm.G[models.RefreshTokenDB](r.db).
 		Where("user_id = ? AND revoked_at IS NULL", userID).
 		Update(ctx, "revoked_at", now)
 	if err != nil {
@@ -132,8 +137,8 @@ func (r *GormRepository) RevokeAllUserRefreshTokens(ctx context.Context, userID 
 	return nil
 }
 
-func (r *GormRepository) DeleteExpiredRefreshTokens(ctx context.Context) error {
-	_, err := gorm.G[RefreshTokenDB](r.db).
+func (r *UserRepository) DeleteExpiredRefreshTokens(ctx context.Context) error {
+	_, err := gorm.G[models.RefreshTokenDB](r.db).
 		Where("expires_at < ?", time.Now()).
 		Delete(ctx)
 	if err != nil {

@@ -1,4 +1,4 @@
-package repository
+package repositories
 
 import (
 	"context"
@@ -7,25 +7,31 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mairuu/mp-api/internal/features/manga/model"
+	mangarepo "github.com/mairuu/mp-api/internal/features/manga/repository"
+	"github.com/mairuu/mp-api/internal/persistence/mappers"
+	"github.com/mairuu/mp-api/internal/persistence/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
-type GormRepository struct {
+type MangaRepository struct {
 	db *gorm.DB
 }
 
-func NewGormRepository(db *gorm.DB) *GormRepository {
-	return &GormRepository{db: db}
+// verify it implements the interface
+var _ mangarepo.Repository = (*MangaRepository)(nil)
+
+func NewMangaRepository(db *gorm.DB) *MangaRepository {
+	return &MangaRepository{db: db}
 }
 
-func (r *GormRepository) SaveManga(ctx context.Context, m *model.Manga) error {
+func (r *MangaRepository) SaveManga(ctx context.Context, m *model.Manga) error {
 	if m == nil {
 		return fmt.Errorf("manga is nil")
 	}
 
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		mdb := toMangaDB(m)
+		mdb := mappers.ToMangaDB(m)
 		err := tx.
 			Clauses(clause.OnConflict{
 				Columns: []clause.Column{{Name: "id"}},
@@ -47,7 +53,7 @@ func (r *GormRepository) SaveManga(ctx context.Context, m *model.Manga) error {
 
 		// sync cover arts
 		// delete and re-insert
-		err = tx.Where("manga_id = ?", m.ID).Delete(&CoverArtDB{}).Error
+		err = tx.Where("manga_id = ?", m.ID).Delete(&models.CoverArtDB{}).Error
 		if err != nil {
 			return fmt.Errorf("delete existing cover arts: %w", err)
 		}
@@ -63,8 +69,8 @@ func (r *GormRepository) SaveManga(ctx context.Context, m *model.Manga) error {
 	})
 }
 
-func (r *GormRepository) DeleteMangaByID(ctx context.Context, id uuid.UUID) error {
-	affected, err := gorm.G[MangaDB](r.db).Where("id = ?", id).Delete(ctx)
+func (r *MangaRepository) DeleteMangaByID(ctx context.Context, id uuid.UUID) error {
+	affected, err := gorm.G[models.MangaDB](r.db).Where("id = ?", id).Delete(ctx)
 	if err != nil {
 		return fmt.Errorf("delete manga: %w", err)
 	}
@@ -74,8 +80,8 @@ func (r *GormRepository) DeleteMangaByID(ctx context.Context, id uuid.UUID) erro
 	return nil
 }
 
-func (r *GormRepository) GetMangaByID(ctx context.Context, id uuid.UUID) (*model.Manga, error) {
-	mdb, err := gorm.G[MangaDB](r.db).
+func (r *MangaRepository) GetMangaByID(ctx context.Context, id uuid.UUID) (*model.Manga, error) {
+	mdb, err := gorm.G[models.MangaDB](r.db).
 		Preload("Covers", func(db gorm.PreloadBuilder) error {
 			db.Order("volume")
 			return nil
@@ -90,13 +96,13 @@ func (r *GormRepository) GetMangaByID(ctx context.Context, id uuid.UUID) (*model
 		return nil, fmt.Errorf("get manga by id: %w", err)
 	}
 
-	mm := mdb.toMangaModel()
+	mm := mappers.MangaDBToModel(&mdb)
 	return &mm, nil
 }
 
-func (r *GormRepository) CountMangas(ctx context.Context, filter MangaFilter) (int, error) {
+func (r *MangaRepository) CountMangas(ctx context.Context, filter mangarepo.MangaFilter) (int, error) {
 	q := r.db.WithContext(ctx).
-		Model(&MangaDB{})
+		Model(&models.MangaDB{})
 	q = applyMangaFilter(q, filter)
 
 	var count int64
@@ -106,14 +112,14 @@ func (r *GormRepository) CountMangas(ctx context.Context, filter MangaFilter) (i
 	return int(count), nil
 }
 
-func (r *GormRepository) ListMangas(ctx context.Context, filter MangaFilter, pagging Pagging, ordering []Ordering) ([]MangaSummary, error) {
+func (r *MangaRepository) ListMangas(ctx context.Context, filter mangarepo.MangaFilter, pagging mangarepo.Pagging, ordering []mangarepo.Ordering) ([]mangarepo.MangaSummary, error) {
 	ms := make([]struct {
 		ID    uuid.UUID
 		Title string
 	}, 0)
 
 	q := r.db.WithContext(ctx).
-		Model(&MangaDB{}).
+		Model(&models.MangaDB{}).
 		Select("id", "title")
 	q = applyMangaFilter(q, filter)
 	q = applyPagging(q, pagging)
@@ -127,7 +133,7 @@ func (r *GormRepository) ListMangas(ctx context.Context, filter MangaFilter, pag
 		ids = append(ids, ms[i].ID)
 	}
 
-	covers, err := gorm.G[CoverArtDB](r.db).
+	covers, err := gorm.G[models.CoverArtDB](r.db).
 		Select("DISTINCT ON (manga_id) manga_id, object_name, volume").
 		Where("manga_id in ?", ids).
 		Order(`manga_id, is_primary DESC, "order" DESC`).
@@ -136,7 +142,7 @@ func (r *GormRepository) ListMangas(ctx context.Context, filter MangaFilter, pag
 		return nil, fmt.Errorf("fetch cover arts for manga summaries: %w", err)
 	}
 
-	coverMap := make(map[uuid.UUID]*CoverArtDB)
+	coverMap := make(map[uuid.UUID]*models.CoverArtDB)
 	for i := range covers {
 		c := &covers[i]
 		if _, exists := coverMap[c.MangaID]; !exists {
@@ -144,9 +150,9 @@ func (r *GormRepository) ListMangas(ctx context.Context, filter MangaFilter, pag
 		}
 	}
 
-	mangas := make([]MangaSummary, 0, len(ms))
+	mangas := make([]mangarepo.MangaSummary, 0, len(ms))
 	for i, m := range ms {
-		mangas = append(mangas, MangaSummary{
+		mangas = append(mangas, mangarepo.MangaSummary{
 			ID:    m.ID,
 			Title: m.Title,
 		})
@@ -159,13 +165,13 @@ func (r *GormRepository) ListMangas(ctx context.Context, filter MangaFilter, pag
 	return mangas, nil
 }
 
-func (r *GormRepository) SaveChapter(ctx context.Context, c *model.Chapter) error {
+func (r *MangaRepository) SaveChapter(ctx context.Context, c *model.Chapter) error {
 	if c == nil {
 		return fmt.Errorf("chapter is nil")
 	}
 
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		cdb := toChapterDB(c)
+		cdb := mappers.ToChapterDB(c)
 		err := tx.
 			Clauses(clause.OnConflict{
 				Columns: []clause.Column{{Name: "id"}},
@@ -192,7 +198,7 @@ func (r *GormRepository) SaveChapter(ctx context.Context, c *model.Chapter) erro
 
 		// sync pages
 		// delete and re-insert
-		err = tx.Where("chapter_id = ?", c.ID).Delete(&ChapterPageDB{}).Error
+		err = tx.Where("chapter_id = ?", c.ID).Delete(&models.ChapterPageDB{}).Error
 		if err != nil {
 			return fmt.Errorf("delete existing pages: %w", err)
 		}
@@ -213,9 +219,9 @@ func (r *GormRepository) SaveChapter(ctx context.Context, c *model.Chapter) erro
 	return nil
 }
 
-func (r *GormRepository) CountChapters(ctx context.Context, filter ChapterFilter) (int, error) {
+func (r *MangaRepository) CountChapters(ctx context.Context, filter mangarepo.ChapterFilter) (int, error) {
 	q := r.db.WithContext(ctx).
-		Model(&ChapterDB{})
+		Model(&models.ChapterDB{})
 	q = applyChapterFilter(q, filter)
 
 	var count int64
@@ -225,28 +231,28 @@ func (r *GormRepository) CountChapters(ctx context.Context, filter ChapterFilter
 	return int(count), nil
 }
 
-func (r *GormRepository) ListChapters(ctx context.Context, filter ChapterFilter, pagging Pagging, ordering []Ordering) ([]ChapterSummary, error) {
+func (r *MangaRepository) ListChapters(ctx context.Context, filter mangarepo.ChapterFilter, pagging mangarepo.Pagging, ordering []mangarepo.Ordering) ([]mangarepo.ChapterSummary, error) {
 	q := r.db.WithContext(ctx).
-		Model(&ChapterDB{}).
+		Model(&models.ChapterDB{}).
 		Select("id", "manga_id", "title", "number", "volume", "created_at")
 	q = applyChapterFilter(q, filter)
 	q = applyPagging(q, pagging)
 	q = applyOrderings(q, ordering)
 
-	var chapters []ChapterSummary
+	var chapters []mangarepo.ChapterSummary
 	if err := q.Scan(&chapters).Error; err != nil {
 		return nil, fmt.Errorf("list chapters: %w", err)
 	}
 
 	if chapters == nil {
-		chapters = []ChapterSummary{}
+		chapters = []mangarepo.ChapterSummary{}
 	}
 
 	return chapters, nil
 }
 
-func (r *GormRepository) GetChapterByID(ctx context.Context, id uuid.UUID) (*model.Chapter, error) {
-	cdb, err := gorm.G[ChapterDB](r.db).
+func (r *MangaRepository) GetChapterByID(ctx context.Context, id uuid.UUID) (*model.Chapter, error) {
+	cdb, err := gorm.G[models.ChapterDB](r.db).
 		Where("id = ?", id).
 		Preload("Pages", func(db gorm.PreloadBuilder) error {
 			db.Order("number")
@@ -260,12 +266,12 @@ func (r *GormRepository) GetChapterByID(ctx context.Context, id uuid.UUID) (*mod
 		return nil, fmt.Errorf("get chapter by id: %w", err)
 	}
 
-	cm := cdb.toChapterModel()
+	cm := mappers.ChapterDBToModel(&cdb)
 	return &cm, nil
 }
 
-func (r *GormRepository) DeleteChapterByID(ctx context.Context, id uuid.UUID) error {
-	affected, err := gorm.G[ChapterDB](r.db).Where("id = ?", id).Delete(ctx)
+func (r *MangaRepository) DeleteChapterByID(ctx context.Context, id uuid.UUID) error {
+	affected, err := gorm.G[models.ChapterDB](r.db).Where("id = ?", id).Delete(ctx)
 	if err != nil {
 		return fmt.Errorf("delete chapter: %w", err)
 	}
@@ -275,7 +281,7 @@ func (r *GormRepository) DeleteChapterByID(ctx context.Context, id uuid.UUID) er
 	return nil
 }
 
-func applyMangaFilter(q *gorm.DB, filter MangaFilter) *gorm.DB {
+func applyMangaFilter(q *gorm.DB, filter mangarepo.MangaFilter) *gorm.DB {
 	if len(filter.IDs) > 0 {
 		if len(filter.IDs) == 1 {
 			q = q.Where("id = ?", filter.IDs[0])
@@ -299,7 +305,7 @@ func applyMangaFilter(q *gorm.DB, filter MangaFilter) *gorm.DB {
 	return q
 }
 
-func applyChapterFilter(q *gorm.DB, filter ChapterFilter) *gorm.DB {
+func applyChapterFilter(q *gorm.DB, filter mangarepo.ChapterFilter) *gorm.DB {
 	if len(filter.IDs) > 0 {
 		if len(filter.IDs) == 1 {
 			q = q.Where("id = ?", filter.IDs[0])
@@ -329,25 +335,25 @@ func applyChapterFilter(q *gorm.DB, filter ChapterFilter) *gorm.DB {
 	return q
 }
 
-func applyPagging(q *gorm.DB, pagging Pagging) *gorm.DB {
+func applyPagging(q *gorm.DB, pagging mangarepo.Pagging) *gorm.DB {
 	q = q.Limit(pagging.Limit).Offset(pagging.Offset)
 	return q
 }
 
-func applyOrderings(q *gorm.DB, ordering []Ordering) *gorm.DB {
+func applyOrderings(q *gorm.DB, ordering []mangarepo.Ordering) *gorm.DB {
 	for _, o := range ordering {
 		if o.Field == "" && !o.Direction.IsValid() {
 			continue
 		}
 		q = q.Order(clause.OrderByColumn{
 			Column: clause.Column{Name: orderKeyer(o.Field), Raw: true},
-			Desc:   o.Direction == Desc,
+			Desc:   o.Direction == mangarepo.Desc,
 		})
 	}
 
 	return q
 }
 
-func orderKeyer(field OrderingField) string {
+func orderKeyer(field mangarepo.OrderingField) string {
 	return string(field)
 }
