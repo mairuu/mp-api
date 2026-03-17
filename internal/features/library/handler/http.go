@@ -24,9 +24,10 @@ func NewHandler(log *slog.Logger, service *service.Service) *Handler {
 func (h *Handler) RegisterRoutes(router gin.IRouter) {
 	library := router.Group("my/library")
 	{
-		library.GET("", h.GetLibrary)
-		library.GET("summary", h.GetLibrarySummary)
+		library.GET("", h.GetLibrarySummary)
+		library.GET("mangas", h.GetLibrary)
 		library.PUT("mangas", h.UpsertLibraryMangas)
+		library.GET("mangas/:manga_id", h.GetLibraryManga)
 	}
 }
 
@@ -65,4 +66,20 @@ func (h *Handler) UpsertLibraryMangas(ctx *gin.Context) {
 	}
 
 	httptransport.SuccessResponse(ctx, http.StatusOK, nil)
+}
+
+func (h *Handler) GetLibraryManga(ctx *gin.Context) {
+	ur := h.userRoleFromContext(ctx)
+	mangaID, err := h.mangaIDFromPath(ctx)
+	if err != nil {
+		h.handleError(ctx, err)
+		return
+	}
+
+	manga, err := h.service.GetLibraryManga(ctx.Request.Context(), ur, mangaID)
+	if err != nil {
+		h.handleError(ctx, err)
+		return
+	}
+	httptransport.SuccessResponse(ctx, http.StatusOK, manga)
 }

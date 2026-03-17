@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/mairuu/mp-api/internal/app"
 	repo "github.com/mairuu/mp-api/internal/features/library/repository"
 )
@@ -18,10 +19,6 @@ func NewService(repo repo.Repository) *Service {
 		repo:   repo,
 	}
 }
-
-// functionality to be implemented:
-// - get library (with manga details)
-// - upsert manga in library (add/remove manga, update tags)
 
 func (s *Service) GetLibrary(ctx context.Context, ur *app.UserRole) (*LibraryDTO, error) {
 	// todo: enforce authorization policies
@@ -68,4 +65,18 @@ func (s *Service) UpsertLibraryMangas(ctx context.Context, ur *app.UserRole, man
 	}
 
 	return s.repo.SaveLibrary(ctx, lib)
+}
+
+func (s *Service) GetLibraryManga(ctx context.Context, ur *app.UserRole, mangaID uuid.UUID) (*LibraryMangaDTO, error) {
+	lib, err := s.repo.GetLibrary(ctx, ur.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	manga, ok := lib.GetManga(mangaID)
+	if !ok {
+		return nil, nil
+	}
+
+	return s.mapper.ToLibraryMangaDTO(manga), nil
 }

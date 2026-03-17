@@ -78,3 +78,12 @@ func (l *Library) UpdateMangaTags(mangaID uuid.UUID, tags []string) {
 		}
 	}
 }
+
+func (l *Library) GetManga(mangaID uuid.UUID) (*LibraryManga, bool) {
+	for i, manga := range l.Mangas {
+		if manga.MangaID == mangaID {
+			return &l.Mangas[i], true
+		}
+	}
+	return nil, false
+}

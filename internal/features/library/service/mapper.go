@@ -16,14 +16,18 @@ func (m *mapper) ToLibraryDTO(lib *model.Library) *LibraryDTO {
 	}
 
 	for i, manga := range lib.Mangas {
-		dto.Mangas[i] = LibraryMangaDTO{
-			MangaID: manga.MangaID.String(),
-			Tags:    manga.Tags,
-			AddedAt: manga.AddedAt.Format(time.RFC3339),
-		}
+		dto.Mangas[i] = *m.ToLibraryMangaDTO(&manga)
 	}
 
 	return dto
+}
+
+func (m *mapper) ToLibraryMangaDTO(manga *model.LibraryManga) *LibraryMangaDTO {
+	return &LibraryMangaDTO{
+		MangaID: manga.MangaID.String(),
+		Tags:    manga.Tags,
+		AddedAt: manga.AddedAt.Format(time.RFC3339),
+	}
 }
 
 func (m *mapper) ToLibrarySummaryDTO(lib *repository.LibrarySummary) *LibrarySummaryDTO {

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/mairuu/mp-api/internal/app"
 	"github.com/mairuu/mp-api/internal/features/library/model"
 	"github.com/mairuu/mp-api/internal/platform/authorization"
@@ -12,6 +13,10 @@ import (
 	httptransport "github.com/mairuu/mp-api/internal/platform/transport/http"
 	"github.com/mairuu/mp-api/internal/platform/transport/http/middleware"
 )
+
+func (h *Handler) mangaIDFromPath(ctx *gin.Context) (uuid.UUID, error) {
+	return uuidFromPath(ctx, "manga_id")
+}
 
 func (h *Handler) userRoleFromContext(ctx *gin.Context) *app.UserRole {
 	userID, ok := middleware.GetUserID(ctx)
@@ -59,4 +64,12 @@ func toHTTPStatusCode(err error) int {
 	}
 
 	return http.StatusInternalServerError
+}
+
+func uuidFromPath(ctx *gin.Context, param string) (uuid.UUID, error) {
+	id, ok := httptransport.GetParamAsUUID(ctx, param)
+	if !ok {
+		return uuid.Nil, httptransport.NewHandlerError(http.StatusBadRequest, "invalid "+param, nil)
+	}
+	return id, nil
 }
