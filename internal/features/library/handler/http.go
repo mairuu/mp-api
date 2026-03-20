@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mairuu/mp-api/internal/features/library/service"
 	httptransport "github.com/mairuu/mp-api/internal/platform/transport/http"
+	"github.com/mairuu/mp-api/internal/platform/transport/http/middleware"
 )
 
 type Handler struct {
@@ -22,7 +23,7 @@ func NewHandler(log *slog.Logger, service *service.Service) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(router gin.IRouter) {
-	library := router.Group("my/library")
+	library := router.Group("my/library", middleware.RequiredAuth())
 	{
 		library.GET("", h.GetLibrarySummary)
 		library.GET("mangas", h.GetLibrary)
