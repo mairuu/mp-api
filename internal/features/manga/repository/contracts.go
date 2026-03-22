@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/mairuu/mp-api/internal/app/ordering"
+	"github.com/mairuu/mp-api/internal/app/paging"
 	model "github.com/mairuu/mp-api/internal/features/manga/model"
 )
 
@@ -13,14 +15,24 @@ type Repository interface {
 
 	GetMangaByID(ctx context.Context, id uuid.UUID) (*model.Manga, error)
 	CountMangas(ctx context.Context, filter MangaFilter) (int, error)
-	ListMangas(ctx context.Context, filter MangaFilter, paging Pagging, ordering []Ordering) ([]MangaSummary, error)
+	ListMangas(
+		ctx context.Context,
+		filter MangaFilter,
+		paging paging.Paging,
+		ordering []ordering.Ordering,
+	) ([]MangaSummary, error)
 
 	SaveChapter(ctx context.Context, c *model.Chapter) error
 	DeleteChapterByID(ctx context.Context, id uuid.UUID) error
 
 	GetChapterByID(ctx context.Context, id uuid.UUID) (*model.Chapter, error)
 	CountChapters(ctx context.Context, filter ChapterFilter) (int, error)
-	ListChapters(ctx context.Context, filter ChapterFilter, paging Pagging, ordering []Ordering) ([]ChapterSummary, error)
+	ListChapters(
+		ctx context.Context,
+		filter ChapterFilter,
+		paging paging.Paging,
+		ordering []ordering.Ordering,
+	) ([]ChapterSummary, error)
 }
 
 type MangaFilter struct {
@@ -39,36 +51,13 @@ type ChapterFilter struct {
 	State    *string
 }
 
-type Pagging struct {
-	Limit  int
-	Offset int
-}
-
-type OrderingField string
-
 const (
 	// shared
-	OrderByTitle     OrderingField = "title"
-	OrderByCreatedAt OrderingField = "created_at"
-	OrderByUpdatedAt OrderingField = "updated_at"
+	OrderByTitle     ordering.Field = "title"
+	OrderByCreatedAt ordering.Field = "created_at"
+	OrderByUpdatedAt ordering.Field = "updated_at"
 
 	// chapter-specific
-	OrderByChapterNumber OrderingField = "number"
-	OrderByChapterVolume OrderingField = "volume"
+	OrderByChapterNumber ordering.Field = "number"
+	OrderByChapterVolume ordering.Field = "volume"
 )
-
-type Ordering struct {
-	Field     OrderingField
-	Direction OrderingDirection
-}
-
-type OrderingDirection string
-
-const (
-	Asc  OrderingDirection = "ASC"
-	Desc OrderingDirection = "DESC"
-)
-
-func (d OrderingDirection) IsValid() bool {
-	return d == Asc || d == Desc
-}

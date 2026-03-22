@@ -1,9 +1,8 @@
 package service
 
 import (
-	"slices"
-	"strings"
-
+	"github.com/mairuu/mp-api/internal/app/ordering"
+	"github.com/mairuu/mp-api/internal/app/paging"
 	repo "github.com/mairuu/mp-api/internal/features/manga/repository"
 )
 
@@ -13,8 +12,8 @@ type MangaListQuery struct {
 	OrderingQuery
 }
 
-func (q *MangaListQuery) ToOrdering() []repo.Ordering {
-	return q.OrderingQuery.toOrdering(
+func (q *MangaListQuery) ToOrdering() []ordering.Ordering {
+	return q.OrderingQuery.ToOrdering(
 		repo.OrderByTitle,
 		repo.OrderByCreatedAt,
 		repo.OrderByUpdatedAt,
@@ -37,14 +36,22 @@ func (f *MangaFilterQuery) ToMangaFilter() repo.MangaFilter {
 	}
 }
 
+type PagingQuery struct {
+	paging.Query
+}
+
+type OrderingQuery struct {
+	ordering.Query
+}
+
 type ChapterListQuery struct {
 	ChapterFilterQuery
 	PagingQuery
 	OrderingQuery
 }
 
-func (q *ChapterListQuery) ToOrdering() []repo.Ordering {
-	return q.OrderingQuery.toOrdering(
+func (q *ChapterListQuery) ToOrdering() []ordering.Ordering {
+	return q.OrderingQuery.ToOrdering(
 		repo.OrderByTitle,
 		repo.OrderByChapterNumber,
 		repo.OrderByChapterVolume,
@@ -68,68 +75,4 @@ func (f *ChapterFilterQuery) ToChapterFilter() repo.ChapterFilter {
 		Number:   f.Number,
 		Volume:   f.Volume,
 	}
-}
-
-type OrderingQuery struct {
-	// syntax: order=field1,asc&order=field2,desc
-	Orders []string `form:"orders[]"`
-}
-
-func (o *OrderingQuery) toOrdering(validFields ...repo.OrderingField) []repo.Ordering {
-	var orderings []repo.Ordering
-	for _, order := range o.Orders {
-		parts := strings.Split(order, ",")
-		if len(parts) != 2 {
-			continue
-		}
-		field := repo.OrderingField(parts[0])
-		direction := parts[1]
-
-		if !slices.Contains(validFields, field) {
-			continue
-		}
-
-		dir := repo.Asc
-		switch direction {
-		case "desc", "DESC":
-			dir = repo.Desc
-		}
-
-		orderings = append(orderings, repo.Ordering{
-			Field:     field,
-			Direction: dir,
-		})
-	}
-
-	return orderings
-}
-
-type PagingQuery struct {
-	Page     int `form:"page"`
-	PageSize int `form:"page_size"`
-}
-
-const (
-	DefaultPageSize = 20
-)
-
-func (p *PagingQuery) normalize() {
-	if p.PageSize <= 0 {
-		p.PageSize = DefaultPageSize
-	}
-	if p.Page <= 0 {
-		p.Page = 1
-	}
-}
-
-func (p *PagingQuery) getLimitOffset() (limit, offset int) {
-	limit = p.PageSize
-	offset = (p.Page - 1) * p.PageSize
-	return
-}
-
-func (p *PagingQuery) ToPaging() repo.Pagging {
-	p.normalize()
-	limit, offset := p.getLimitOffset()
-	return repo.Pagging{Limit: limit, Offset: offset}
 }

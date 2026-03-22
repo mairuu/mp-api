@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/mairuu/mp-api/internal/app/ordering"
+	"github.com/mairuu/mp-api/internal/app/paging"
 	"github.com/mairuu/mp-api/internal/features/manga/model"
 	mangarepo "github.com/mairuu/mp-api/internal/features/manga/repository"
 	"github.com/mairuu/mp-api/internal/persistence/mappers"
@@ -112,7 +114,7 @@ func (r *MangaRepository) CountMangas(ctx context.Context, filter mangarepo.Mang
 	return int(count), nil
 }
 
-func (r *MangaRepository) ListMangas(ctx context.Context, filter mangarepo.MangaFilter, pagging mangarepo.Pagging, ordering []mangarepo.Ordering) ([]mangarepo.MangaSummary, error) {
+func (r *MangaRepository) ListMangas(ctx context.Context, filter mangarepo.MangaFilter, paging paging.Paging, ordering []ordering.Ordering) ([]mangarepo.MangaSummary, error) {
 	ms := make([]struct {
 		ID    uuid.UUID
 		Title string
@@ -122,7 +124,7 @@ func (r *MangaRepository) ListMangas(ctx context.Context, filter mangarepo.Manga
 		Model(&models.MangaDB{}).
 		Select("id", "title")
 	q = applyMangaFilter(q, filter)
-	q = applyPagging(q, pagging)
+	q = applyPagging(q, paging)
 	q = applyOrderings(q, ordering)
 	if err := q.Scan(&ms).Error; err != nil {
 		return nil, fmt.Errorf("list mangas: %w", err)
@@ -231,7 +233,7 @@ func (r *MangaRepository) CountChapters(ctx context.Context, filter mangarepo.Ch
 	return int(count), nil
 }
 
-func (r *MangaRepository) ListChapters(ctx context.Context, filter mangarepo.ChapterFilter, pagging mangarepo.Pagging, ordering []mangarepo.Ordering) ([]mangarepo.ChapterSummary, error) {
+func (r *MangaRepository) ListChapters(ctx context.Context, filter mangarepo.ChapterFilter, pagging paging.Paging, ordering []ordering.Ordering) ([]mangarepo.ChapterSummary, error) {
 	q := r.db.WithContext(ctx).
 		Model(&models.ChapterDB{}).
 		Select("id", "manga_id", "title", "number", "volume", "created_at")
@@ -333,27 +335,4 @@ func applyChapterFilter(q *gorm.DB, filter mangarepo.ChapterFilter) *gorm.DB {
 		q = q.Where("state = ?", *filter.State)
 	}
 	return q
-}
-
-func applyPagging(q *gorm.DB, pagging mangarepo.Pagging) *gorm.DB {
-	q = q.Limit(pagging.Limit).Offset(pagging.Offset)
-	return q
-}
-
-func applyOrderings(q *gorm.DB, ordering []mangarepo.Ordering) *gorm.DB {
-	for _, o := range ordering {
-		if o.Field == "" && !o.Direction.IsValid() {
-			continue
-		}
-		q = q.Order(clause.OrderByColumn{
-			Column: clause.Column{Name: orderKeyer(o.Field), Raw: true},
-			Desc:   o.Direction == mangarepo.Desc,
-		})
-	}
-
-	return q
-}
-
-func orderKeyer(field mangarepo.OrderingField) string {
-	return string(field)
 }

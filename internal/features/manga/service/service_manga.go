@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mairuu/mp-api/internal/app"
+	"github.com/mairuu/mp-api/internal/app/paging"
 	"github.com/mairuu/mp-api/internal/features/manga/model"
 	"github.com/mairuu/mp-api/internal/platform/authorization"
 	"github.com/mairuu/mp-api/internal/platform/collections"
@@ -49,7 +50,7 @@ func (s *Service) CreateManga(ctx context.Context, ur *app.UserRole, req CreateM
 	return &dto, nil
 }
 
-func (s *Service) ListMangas(ctx context.Context, ur *app.UserRole, q *MangaListQuery) (*PagedDTO, error) {
+func (s *Service) ListMangas(ctx context.Context, ur *app.UserRole, q *MangaListQuery) (*paging.PagedDTO, error) {
 	err := s.enforce(ur, model.ResourceManga, model.ActionRead, nil)
 	if err != nil {
 		return nil, err
@@ -59,16 +60,16 @@ func (s *Service) ListMangas(ctx context.Context, ur *app.UserRole, q *MangaList
 		q.Orders = []string{"created_at,desc"}
 	}
 
-	filter := q.ToMangaFilter()
-	pagging := q.ToPaging()
-	ordering := q.ToOrdering()
+	f := q.ToMangaFilter()
+	p := q.ToPaging()
+	o := q.ToOrdering()
 
-	total, err := s.repo.CountMangas(ctx, filter)
+	total, err := s.repo.CountMangas(ctx, f)
 	if err != nil {
 		return nil, err
 	}
 
-	ms, err := s.repo.ListMangas(ctx, filter, pagging, ordering)
+	ms, err := s.repo.ListMangas(ctx, f, p, o)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +80,7 @@ func (s *Service) ListMangas(ctx context.Context, ur *app.UserRole, q *MangaList
 	}
 
 	totalPages := (total + q.PageSize - 1) / q.PageSize
-	dto := NewPagedDTO(total, totalPages, q.PageSize, q.Page, items)
+	dto := paging.NewPagedDTO(total, totalPages, q.PageSize, q.Page, items)
 
 	return &dto, nil
 }

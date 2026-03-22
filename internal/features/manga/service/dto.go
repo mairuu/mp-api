@@ -87,29 +87,3 @@ type ChapterSummaryDTO struct {
 	Volume    *string `json:"volume"`
 	CreatedAt string  `json:"created_at"`
 }
-
-// pagination
-
-type PagedDTO struct {
-	Items      any           `json:"items"`
-	Pagination PaginationDTO `json:"pagination"`
-}
-
-type PaginationDTO struct {
-	TotalItems int `json:"total_items"`
-	TotalPages int `json:"total_pages"`
-	Page       int `json:"page"`
-	PageSize   int `json:"page_size"`
-}
-
-func NewPagedDTO(total, totalPage, pageSize, page int, items any) PagedDTO {
-	return PagedDTO{
-		Items: items,
-		Pagination: PaginationDTO{
-			TotalItems: total,
-			TotalPages: totalPage,
-			PageSize:   pageSize,
-			Page:       page,
-		},
-	}
-}
