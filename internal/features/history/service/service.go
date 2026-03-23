@@ -34,8 +34,7 @@ func (s *Service) ListRecent(ctx context.Context, ur *app.UserRole, q HistoryLis
 		items[i] = s.mapper.ToRecentReadDTO(&r.Items[i])
 	}
 
-	totalPages := (r.Total + q.PageSize - 1) / q.PageSize
-	paged := paging.NewPagedDTO(r.Total, totalPages, q.PageSize, q.Page, items)
+	paged := paging.NewPagedDTOFromPaging(r.Total, r.Limit, r.Offset, items)
 	return &paged, nil
 }
 
@@ -50,8 +49,7 @@ func (s *Service) ListByManga(ctx context.Context, ur *app.UserRole, mangaID uui
 		items[i] = s.mapper.ToMangaReadDTO(&r.Items[i])
 	}
 
-	totalPages := (r.Total + q.PageSize - 1) / q.PageSize
-	dto := paging.NewPagedDTO(r.Total, totalPages, q.PageSize, q.Page, items)
+	dto := paging.NewPagedDTOFromPaging(r.Total, r.Limit, r.Offset, items)
 	return &dto, nil
 }
 

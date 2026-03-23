@@ -16,13 +16,16 @@ type PaginationDTO struct {
 	PageSize   int `json:"page_size"`
 }
 
-func NewPagedDTO(total, totalPage, pageSize, page int, items any) PagedDTO {
+func NewPagedDTOFromPaging(total, limit, offset int, items any) PagedDTO {
+	page := (offset / limit) + 1
+	totalPage := (total + limit - 1) / limit
+
 	return PagedDTO{
 		Items: items,
 		Pagination: PaginationDTO{
 			TotalItems: total,
 			TotalPages: totalPage,
-			PageSize:   pageSize,
+			PageSize:   limit,
 			Page:       page,
 		},
 	}

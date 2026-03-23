@@ -60,16 +60,7 @@ func (s *Service) ListMangas(ctx context.Context, ur *app.UserRole, q *MangaList
 		q.Orders = []string{"created_at,desc"}
 	}
 
-	f := q.ToMangaFilter()
-	p := q.ToPaging()
-	o := q.ToOrdering()
-
-	total, err := s.repo.CountMangas(ctx, f)
-	if err != nil {
-		return nil, err
-	}
-
-	r, err := s.repo.ListMangas(ctx, f, p, o)
+	r, err := s.repo.ListMangas(ctx, q.ToMangaFilter(), q.ToPaging(), q.ToOrdering())
 	if err != nil {
 		return nil, err
 	}
@@ -79,8 +70,7 @@ func (s *Service) ListMangas(ctx context.Context, ur *app.UserRole, q *MangaList
 		items[i] = s.mapper.ToMangaSummaryDTO(&r.Items[i])
 	}
 
-	totalPages := (total + q.PageSize - 1) / q.PageSize
-	dto := paging.NewPagedDTO(total, totalPages, q.PageSize, q.Page, items)
+	dto := paging.NewPagedDTOFromPaging(r.Total, r.Limit, r.Offset, items)
 
 	return &dto, nil
 }

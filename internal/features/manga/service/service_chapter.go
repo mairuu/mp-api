@@ -70,15 +70,7 @@ func (s *Service) ListChapters(ctx context.Context, ur *app.UserRole, q *Chapter
 
 	f := q.ToChapterFilter()
 	f.State = ptr(string(model.ChapterStatePublish))
-	p := q.ToPaging()
-	o := q.ToOrdering()
-
-	total, err := s.repo.CountChapters(ctx, f)
-	if err != nil {
-		return nil, err
-	}
-
-	r, err := s.repo.ListChapters(ctx, f, p, o)
+	r, err := s.repo.ListChapters(ctx, f, q.ToPaging(), q.ToOrdering())
 	if err != nil {
 		return nil, err
 	}
@@ -88,8 +80,7 @@ func (s *Service) ListChapters(ctx context.Context, ur *app.UserRole, q *Chapter
 		items[i] = s.mapper.ToChapterSummaryDTO(&r.Items[i])
 	}
 
-	totalPages := (total + q.PageSize - 1) / q.PageSize
-	dto := paging.NewPagedDTO(total, totalPages, q.PageSize, q.Page, items)
+	dto := paging.NewPagedDTOFromPaging(r.Total, r.Limit, r.Offset, items)
 
 	return &dto, nil
 }

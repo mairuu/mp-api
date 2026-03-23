@@ -102,7 +102,7 @@ func (r *MangaRepository) GetMangaByID(ctx context.Context, id uuid.UUID) (*mode
 	return &mm, nil
 }
 
-func (r *MangaRepository) CountMangas(ctx context.Context, filter mangarepo.MangaFilter) (int, error) {
+func (r *MangaRepository) countMangas(ctx context.Context, filter mangarepo.MangaFilter) (int, error) {
 	q := r.db.WithContext(ctx).
 		Model(&models.MangaDB{})
 	q = applyMangaFilter(q, filter)
@@ -120,6 +120,11 @@ func (r *MangaRepository) ListMangas(
 	paging paging.Paging,
 	ordering []ordering.Ordering,
 ) (*mangarepo.Page[mangarepo.MangaSummary], error) {
+	total, err := r.countMangas(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
 	ms := make([]struct {
 		ID    uuid.UUID
 		Title string
@@ -171,7 +176,7 @@ func (r *MangaRepository) ListMangas(
 
 	return &mangarepo.Page[mangarepo.MangaSummary]{
 		Items:  mangas,
-		Total:  len(mangas),
+		Total:  total,
 		Limit:  paging.Limit,
 		Offset: paging.Offset,
 	}, nil
@@ -231,7 +236,7 @@ func (r *MangaRepository) SaveChapter(ctx context.Context, c *model.Chapter) err
 	return nil
 }
 
-func (r *MangaRepository) CountChapters(ctx context.Context, filter mangarepo.ChapterFilter) (int, error) {
+func (r *MangaRepository) countChapters(ctx context.Context, filter mangarepo.ChapterFilter) (int, error) {
 	q := r.db.WithContext(ctx).
 		Model(&models.ChapterDB{})
 	q = applyChapterFilter(q, filter)
@@ -246,14 +251,19 @@ func (r *MangaRepository) CountChapters(ctx context.Context, filter mangarepo.Ch
 func (r *MangaRepository) ListChapters(
 	ctx context.Context,
 	filter mangarepo.ChapterFilter,
-	pagging paging.Paging,
+	paging paging.Paging,
 	ordering []ordering.Ordering,
 ) (*mangarepo.Page[mangarepo.ChapterSummary], error) {
+	total, err := r.countChapters(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
 	q := r.db.WithContext(ctx).
 		Model(&models.ChapterDB{}).
 		Select("id", "manga_id", "title", "number", "volume", "created_at")
 	q = applyChapterFilter(q, filter)
-	q = applyPagging(q, pagging)
+	q = applyPagging(q, paging)
 	q = applyOrderings(q, ordering)
 
 	var chapters []mangarepo.ChapterSummary
@@ -267,9 +277,9 @@ func (r *MangaRepository) ListChapters(
 
 	return &mangarepo.Page[mangarepo.ChapterSummary]{
 		Items:  chapters,
-		Total:  len(chapters),
-		Limit:  pagging.Limit,
-		Offset: pagging.Offset,
+		Total:  total,
+		Limit:  paging.Limit,
+		Offset: paging.Offset,
 	}, nil
 }
 

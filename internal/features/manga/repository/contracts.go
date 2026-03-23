@@ -14,7 +14,6 @@ type Repository interface {
 	DeleteMangaByID(ctx context.Context, id uuid.UUID) error
 
 	GetMangaByID(ctx context.Context, id uuid.UUID) (*model.Manga, error)
-	CountMangas(ctx context.Context, filter MangaFilter) (int, error)
 	ListMangas(
 		ctx context.Context,
 		filter MangaFilter,
@@ -26,7 +25,6 @@ type Repository interface {
 	DeleteChapterByID(ctx context.Context, id uuid.UUID) error
 
 	GetChapterByID(ctx context.Context, id uuid.UUID) (*model.Chapter, error)
-	CountChapters(ctx context.Context, filter ChapterFilter) (int, error)
 	ListChapters(
 		ctx context.Context,
 		filter ChapterFilter,
