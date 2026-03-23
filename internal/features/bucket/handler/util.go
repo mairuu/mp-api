@@ -8,22 +8,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mairuu/mp-api/internal/app"
 	"github.com/mairuu/mp-api/internal/features/bucket/model"
-	"github.com/mairuu/mp-api/internal/platform/authorization"
 	"github.com/mairuu/mp-api/internal/platform/storage"
 	httptransport "github.com/mairuu/mp-api/internal/platform/transport/http"
-	"github.com/mairuu/mp-api/internal/platform/transport/http/middleware"
 )
 
-func userRoleFromContext(ctx *gin.Context) *app.UserRole {
-	userID, ok := middleware.GetUserID(ctx)
-	if !ok {
-		return (&app.UserRole{}).OrGuest()
-	}
-	role, ok := middleware.GetUserRole(ctx)
-	if !ok {
-		return (&app.UserRole{}).OrGuest()
-	}
-	return (&app.UserRole{ID: userID, Role: authorization.Role(role)}).OrGuest()
+func (h *BucketHandler) userRoleFromContext(ctx *gin.Context) *app.UserRole {
+	return app.UserRoleFromContext(ctx)
 }
 
 func (h *BucketHandler) fail(ctx *gin.Context, err error) bool {

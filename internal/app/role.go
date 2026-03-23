@@ -1,8 +1,10 @@
 package app
 
 import (
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/mairuu/mp-api/internal/platform/authorization"
+	"github.com/mairuu/mp-api/internal/platform/transport/http/middleware"
 )
 
 const (
@@ -40,4 +42,16 @@ func (ur *UserRole) OrGuest() *UserRole {
 		}
 	}
 	return ur
+}
+
+func UserRoleFromContext(ctx *gin.Context) *UserRole {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		return (&UserRole{}).OrGuest()
+	}
+	role, ok := middleware.GetUserRole(ctx)
+	if !ok {
+		return (&UserRole{}).OrGuest()
+	}
+	return (&UserRole{ID: userID, Role: authorization.Role(role)}).OrGuest()
 }

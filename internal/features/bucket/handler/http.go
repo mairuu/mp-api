@@ -36,7 +36,7 @@ func (h *BucketHandler) RegisterRoutes(router gin.IRouter) {
 
 // upload temporary files to the bucket, these files will be deleted after some period of time
 func (h *BucketHandler) Upload(ctx *gin.Context) {
-	ur := userRoleFromContext(ctx)
+	ur := h.userRoleFromContext(ctx)
 
 	form, err := ctx.MultipartForm()
 	if h.fail(ctx, err) {
