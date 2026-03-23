@@ -30,14 +30,12 @@ func (h *UserHandler) RegisterRoutes(router gin.IRouter) {
 
 func (h *UserHandler) Register(ctx *gin.Context) {
 	var req service.RegisterDTO
-	if err := httptransport.BindJSON(ctx, &req, h.log); err != nil {
-		h.handleErrors(ctx, err)
+	if h.fail(ctx, httptransport.BindJSON(ctx, &req, h.log)) {
 		return
 	}
 
 	user, err := h.service.Register(ctx.Request.Context(), req)
-	if err != nil {
-		h.handleErrors(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
@@ -46,14 +44,12 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 
 func (h *UserHandler) Login(ctx *gin.Context) {
 	var req service.LoginDTO
-	if err := httptransport.BindJSON(ctx, &req, h.log); err != nil {
-		h.handleErrors(ctx, err)
+	if h.fail(ctx, httptransport.BindJSON(ctx, &req, h.log)) {
 		return
 	}
 
 	response, err := h.service.Login(ctx.Request.Context(), req)
-	if err != nil {
-		h.handleErrors(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
@@ -68,8 +64,7 @@ func (h *UserHandler) GetMe(ctx *gin.Context) {
 	}
 
 	user, err := h.service.GetUserByID(ctx.Request.Context(), userID)
-	if err != nil {
-		h.handleErrors(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
@@ -78,14 +73,12 @@ func (h *UserHandler) GetMe(ctx *gin.Context) {
 
 func (h *UserHandler) Refresh(ctx *gin.Context) {
 	var req service.RefreshTokenDTO
-	if err := httptransport.BindJSON(ctx, &req, h.log); err != nil {
-		h.handleErrors(ctx, err)
+	if h.fail(ctx, httptransport.BindJSON(ctx, &req, h.log)) {
 		return
 	}
 
 	response, err := h.service.RefreshToken(ctx.Request.Context(), req)
-	if err != nil {
-		h.handleErrors(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
@@ -94,29 +87,14 @@ func (h *UserHandler) Refresh(ctx *gin.Context) {
 
 func (h *UserHandler) Logout(ctx *gin.Context) {
 	var req service.RefreshTokenDTO
-	if err := httptransport.BindJSON(ctx, &req, h.log); err != nil {
-		h.handleErrors(ctx, err)
+	if h.fail(ctx, httptransport.BindJSON(ctx, &req, h.log)) {
 		return
 	}
 
-	if err := h.service.Logout(ctx.Request.Context(), req); err != nil {
-		h.handleErrors(ctx, err)
+	if h.fail(ctx, h.service.Logout(ctx.Request.Context(), req)) {
 		return
 	}
 
 	// response body need to align with another enpoints for simplicity in client handling
 	httptransport.SuccessResponse(ctx, http.StatusOK, nil)
-}
-
-func (h *UserHandler) handleErrors(ctx *gin.Context, err error) {
-	code := h.toHTTPStatusCode(err)
-
-	// server errors should not leak details to clients
-	if code >= 500 {
-		h.log.ErrorContext(ctx.Request.Context(), "internal server error", "error", err)
-		httptransport.ErrorResponse(ctx, http.StatusInternalServerError, "internal server error")
-		return
-	}
-
-	httptransport.ErrorResponse(ctx, code, err.Error())
 }

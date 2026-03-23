@@ -1,14 +1,12 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/mairuu/mp-api/internal/app"
 	"github.com/mairuu/mp-api/internal/platform/authorization"
-	perrors "github.com/mairuu/mp-api/internal/platform/errors"
 	httptransport "github.com/mairuu/mp-api/internal/platform/transport/http"
 	"github.com/mairuu/mp-api/internal/platform/transport/http/middleware"
 )
@@ -46,35 +44,7 @@ func (h *Handler) fail(ctx *gin.Context, err error) bool {
 }
 
 func (h *Handler) handleError(ctx *gin.Context, err error) {
-	code := toHTTPStatusCode(err)
-
-	// for server errors, we log the error and return a generic error message to the client
-	if code >= 500 {
-		h.log.ErrorContext(ctx.Request.Context(), "internal server error", "error", err)
-		httptransport.ErrorResponse(ctx, code, http.StatusText(code))
-		return
-	}
-
-	// for client errors, we can return the error message to the client
-	httptransport.ErrorResponse(ctx, code, err.Error())
+	httptransport.HandleError(ctx, err, h.log, domainErrStatusMap)
 }
 
 var domainErrStatusMap = map[string]int{}
-
-func toHTTPStatusCode(err error) int {
-	var statusCoder interface {
-		Status() int
-	}
-	if errors.As(err, &statusCoder) {
-		return statusCoder.Status()
-	}
-
-	var domainErr *perrors.DomainError
-	if errors.As(err, &domainErr) {
-		if code, ok := domainErrStatusMap[domainErr.Code]; ok {
-			return code
-		}
-	}
-
-	return http.StatusInternalServerError
-}

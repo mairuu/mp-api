@@ -45,14 +45,12 @@ func (h *Handler) CreateManga(ctx *gin.Context) {
 	ur := h.userRoleFromContext(ctx)
 
 	var req service.CreateMangaDTO
-	if err := httptransport.BindJSON(ctx, &req, h.log); err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, httptransport.BindJSON(ctx, &req, h.log)) {
 		return
 	}
 
 	m, err := h.service.CreateManga(ctx.Request.Context(), ur, req)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
@@ -63,14 +61,12 @@ func (h *Handler) ListMangas(ctx *gin.Context) {
 	ur := h.userRoleFromContext(ctx)
 
 	var q service.MangaListQuery
-	if err := httptransport.BindQuery(ctx, &q, h.log); err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, httptransport.BindQuery(ctx, &q, h.log)) {
 		return
 	}
 
 	dto, err := h.service.ListMangas(ctx.Request.Context(), ur, &q)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
@@ -81,14 +77,12 @@ func (h *Handler) GetMangaByID(ctx *gin.Context) {
 	ur := h.userRoleFromContext(ctx)
 
 	mangaID, err := h.mangaIDFromPath(ctx)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
 	dto, err := h.service.GetMangaByID(ctx.Request.Context(), ur, mangaID)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
@@ -99,20 +93,17 @@ func (h *Handler) UpdateManga(ctx *gin.Context) {
 	ur := h.userRoleFromContext(ctx)
 
 	mangaID, err := h.mangaIDFromPath(ctx)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
 	var req service.UpdateMangaDTO
-	if err := httptransport.BindJSON(ctx, &req, h.log); err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, httptransport.BindJSON(ctx, &req, h.log)) {
 		return
 	}
 
 	dto, err := h.service.UpdateManga(ctx.Request.Context(), ur, mangaID, req)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
@@ -123,13 +114,11 @@ func (h *Handler) DeleteManga(ctx *gin.Context) {
 	ur := h.userRoleFromContext(ctx)
 
 	mangaID, err := h.mangaIDFromPath(ctx)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
-	if err := h.service.DeleteManga(ctx.Request.Context(), ur, mangaID); err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, h.service.DeleteManga(ctx.Request.Context(), ur, mangaID)) {
 		return
 	}
 
@@ -140,14 +129,12 @@ func (h *Handler) CreateChapter(ctx *gin.Context) {
 	ur := h.userRoleFromContext(ctx)
 
 	var req service.CreateChapterDTO
-	if err := httptransport.BindJSON(ctx, &req, h.log); err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, httptransport.BindJSON(ctx, &req, h.log)) {
 		return
 	}
 
 	chapter, err := h.service.CreateChapter(ctx.Request.Context(), ur, req)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
@@ -158,14 +145,12 @@ func (h *Handler) ListChapters(ctx *gin.Context) {
 	ur := h.userRoleFromContext(ctx)
 
 	var pq service.ChapterListQuery
-	if err := httptransport.BindQuery(ctx, &pq, h.log); err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, httptransport.BindQuery(ctx, &pq, h.log)) {
 		return
 	}
 
 	dto, err := h.service.ListChapters(ctx.Request.Context(), ur, &pq)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
@@ -176,14 +161,12 @@ func (h *Handler) GetChapterByID(ctx *gin.Context) {
 	ur := h.userRoleFromContext(ctx)
 
 	chapterID, err := h.chapterIDFromPath(ctx)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
 	dto, err := h.service.GetChapterByID(ctx.Request.Context(), ur, chapterID)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
@@ -194,20 +177,17 @@ func (h *Handler) UpdateChapter(ctx *gin.Context) {
 	ur := h.userRoleFromContext(ctx)
 
 	chapterID, err := h.chapterIDFromPath(ctx)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
 	var req service.UpdateChapterDTO
-	if err := httptransport.BindJSON(ctx, &req, h.log); err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, httptransport.BindJSON(ctx, &req, h.log)) {
 		return
 	}
 
 	dto, err := h.service.UpdateChapter(ctx.Request.Context(), ur, chapterID, req)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
@@ -218,13 +198,11 @@ func (h *Handler) DeleteChapter(ctx *gin.Context) {
 	ur := h.userRoleFromContext(ctx)
 
 	chapterID, err := h.chapterIDFromPath(ctx)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
-	if err := h.service.DeleteChapter(ctx.Request.Context(), ur, chapterID); err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, h.service.DeleteChapter(ctx.Request.Context(), ur, chapterID)) {
 		return
 	}
 

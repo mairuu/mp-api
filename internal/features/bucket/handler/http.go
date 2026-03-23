@@ -39,8 +39,7 @@ func (h *BucketHandler) Upload(ctx *gin.Context) {
 	ur := userRoleFromContext(ctx)
 
 	form, err := ctx.MultipartForm()
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
@@ -48,8 +47,7 @@ func (h *BucketHandler) Upload(ctx *gin.Context) {
 	refIDs := form.Value["ref_ids[]"]
 
 	result, err := h.service.UploadFiles(ctx.Request.Context(), ur, files, refIDs)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
@@ -60,8 +58,7 @@ func (h *BucketHandler) Get(ctx *gin.Context) {
 	objectName := strings.TrimPrefix(ctx.Param("object_name"), "/")
 
 	meta, err := h.service.GetMetadata(ctx.Request.Context(), objectName)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
@@ -72,8 +69,7 @@ func (h *BucketHandler) Get(ctx *gin.Context) {
 	}
 
 	reader, err := h.service.Download(ctx.Request.Context(), objectName)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 	defer reader.Close()
@@ -91,8 +87,7 @@ func (h *BucketHandler) Head(ctx *gin.Context) {
 	objectName := strings.TrimPrefix(ctx.Param("object_name"), "/")
 
 	meta, err := h.service.GetMetadata(ctx.Request.Context(), objectName)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
@@ -103,14 +98,4 @@ func (h *BucketHandler) Head(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusOK)
-}
-
-func (h *BucketHandler) handleError(ctx *gin.Context, err error) {
-	code := toHTTPStatusCode(err)
-
-	if code >= 500 {
-		h.log.Error("bucket handler error", "error", err)
-	}
-
-	ctx.Status(code)
 }

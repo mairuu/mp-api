@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,7 +8,6 @@ import (
 	"github.com/mairuu/mp-api/internal/app"
 	"github.com/mairuu/mp-api/internal/features/manga/model"
 	"github.com/mairuu/mp-api/internal/platform/authorization"
-	perrors "github.com/mairuu/mp-api/internal/platform/errors"
 	httptransport "github.com/mairuu/mp-api/internal/platform/transport/http"
 	"github.com/mairuu/mp-api/internal/platform/transport/http/middleware"
 )
@@ -20,6 +18,14 @@ func (h *Handler) mangaIDFromPath(ctx *gin.Context) (uuid.UUID, error) {
 
 func (h *Handler) chapterIDFromPath(ctx *gin.Context) (uuid.UUID, error) {
 	return uuidFromPath(ctx, "chapter_id")
+}
+
+func uuidFromPath(ctx *gin.Context, param string) (uuid.UUID, error) {
+	id, ok := httptransport.GetParamAsUUID(ctx, param)
+	if !ok {
+		return uuid.Nil, httptransport.NewHandlerError(http.StatusBadRequest, "invalid "+param, nil)
+	}
+	return id, nil
 }
 
 func (h *Handler) userRoleFromContext(ctx *gin.Context) *app.UserRole {
@@ -34,26 +40,16 @@ func (h *Handler) userRoleFromContext(ctx *gin.Context) *app.UserRole {
 	return (&app.UserRole{ID: userID, Role: authorization.Role(role)}).OrGuest()
 }
 
-func (h *Handler) handleError(ctx *gin.Context, err error) {
-	code := toHTTPStatusCode(err)
-
-	// for server errors, we log the error and return a generic error message to the client
-	if code >= 500 {
-		h.log.ErrorContext(ctx.Request.Context(), "internal server error", "error", err)
-		httptransport.ErrorResponse(ctx, code, http.StatusText(code))
-		return
+func (h *Handler) fail(ctx *gin.Context, err error) bool {
+	if err != nil {
+		h.handleError(ctx, err)
+		return true
 	}
-
-	// for client errors, we can return the error message to the client
-	httptransport.ErrorResponse(ctx, code, err.Error())
+	return false
 }
 
-func uuidFromPath(ctx *gin.Context, param string) (uuid.UUID, error) {
-	id, ok := httptransport.GetParamAsUUID(ctx, param)
-	if !ok {
-		return uuid.Nil, httptransport.NewHandlerError(http.StatusBadRequest, "invalid "+param, nil)
-	}
-	return id, nil
+func (h *Handler) handleError(ctx *gin.Context, err error) {
+	httptransport.HandleError(ctx, err, h.log, domainErrStatusMap)
 }
 
 var domainErrStatusMap = map[string]int{
@@ -74,22 +70,4 @@ var domainErrStatusMap = map[string]int{
 	model.ErrInvalidPageWidth.Code:       http.StatusBadRequest,
 	model.ErrInvalidPageHeight.Code:      http.StatusBadRequest,
 	model.ErrEmptyPageObjectName.Code:    http.StatusBadRequest,
-}
-
-func toHTTPStatusCode(err error) int {
-	var statusCoder interface {
-		Status() int
-	}
-	if errors.As(err, &statusCoder) {
-		return statusCoder.Status()
-	}
-
-	var domainErr *perrors.DomainError
-	if errors.As(err, &domainErr) {
-		if code, ok := domainErrStatusMap[domainErr.Code]; ok {
-			return code
-		}
-	}
-
-	return http.StatusInternalServerError
 }

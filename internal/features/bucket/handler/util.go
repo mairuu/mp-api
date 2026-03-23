@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -10,8 +9,8 @@ import (
 	"github.com/mairuu/mp-api/internal/app"
 	"github.com/mairuu/mp-api/internal/features/bucket/model"
 	"github.com/mairuu/mp-api/internal/platform/authorization"
-	perrors "github.com/mairuu/mp-api/internal/platform/errors"
 	"github.com/mairuu/mp-api/internal/platform/storage"
+	httptransport "github.com/mairuu/mp-api/internal/platform/transport/http"
 	"github.com/mairuu/mp-api/internal/platform/transport/http/middleware"
 )
 
@@ -27,28 +26,22 @@ func userRoleFromContext(ctx *gin.Context) *app.UserRole {
 	return (&app.UserRole{ID: userID, Role: authorization.Role(role)}).OrGuest()
 }
 
+func (h *BucketHandler) fail(ctx *gin.Context, err error) bool {
+	if err != nil {
+		h.handleError(ctx, err)
+		return true
+	}
+	return false
+}
+
+func (h *BucketHandler) handleError(ctx *gin.Context, err error) {
+	httptransport.HandleError(ctx, err, h.log, domainErrStatusMap)
+}
+
 var domainErrStatusMap = map[string]int{
 	storage.ErrObjectNotFound.Error():   http.StatusNotFound,
 	model.ErrFileRequired.Error():       http.StatusBadRequest,
 	model.ErrRefIDCountMismatch.Error(): http.StatusBadRequest,
-}
-
-func toHTTPStatusCode(err error) int {
-	var statusCoder interface {
-		Status() int
-	}
-	if errors.As(err, &statusCoder) {
-		return statusCoder.Status()
-	}
-
-	var domainErr *perrors.DomainError
-	if errors.As(err, &domainErr) {
-		if code, ok := domainErrStatusMap[domainErr.Code]; ok {
-			return code
-		}
-	}
-
-	return http.StatusInternalServerError
 }
 
 func setCachingHeaders(ctx *gin.Context, meta *storage.ObjectMetadata) (etag string, lastMod time.Time) {

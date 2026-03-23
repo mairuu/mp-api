@@ -35,8 +35,7 @@ func (h *Handler) RegisterRoutes(router gin.IRouter) {
 func (h *Handler) GetLibrary(ctx *gin.Context) {
 	ur := h.userRoleFromContext(ctx)
 	lib, err := h.service.GetLibrary(ctx.Request.Context(), ur)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 	httptransport.SuccessResponse(ctx, http.StatusOK, lib)
@@ -45,8 +44,7 @@ func (h *Handler) GetLibrary(ctx *gin.Context) {
 func (h *Handler) GetLibrarySummary(ctx *gin.Context) {
 	ur := h.userRoleFromContext(ctx)
 	summary, err := h.service.GetLibrarySummary(ctx.Request.Context(), ur)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 	httptransport.SuccessResponse(ctx, http.StatusOK, summary)
@@ -56,13 +54,11 @@ func (h *Handler) UpsertLibraryMangas(ctx *gin.Context) {
 	ur := h.userRoleFromContext(ctx)
 
 	var req []service.UpsertLibraryMangaDTO
-	if err := httptransport.BindJSON(ctx, &req, h.log); err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, httptransport.BindJSON(ctx, &req, h.log)) {
 		return
 	}
 
-	if err := h.service.UpsertLibraryMangas(ctx.Request.Context(), ur, req); err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, h.service.UpsertLibraryMangas(ctx.Request.Context(), ur, req)) {
 		return
 	}
 
@@ -72,14 +68,12 @@ func (h *Handler) UpsertLibraryMangas(ctx *gin.Context) {
 func (h *Handler) GetLibraryManga(ctx *gin.Context) {
 	ur := h.userRoleFromContext(ctx)
 	mangaID, err := h.mangaIDFromPath(ctx)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 
 	manga, err := h.service.GetLibraryManga(ctx.Request.Context(), ur, mangaID)
-	if err != nil {
-		h.handleError(ctx, err)
+	if h.fail(ctx, err) {
 		return
 	}
 	httptransport.SuccessResponse(ctx, http.StatusOK, manga)
