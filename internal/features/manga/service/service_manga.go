@@ -69,14 +69,14 @@ func (s *Service) ListMangas(ctx context.Context, ur *app.UserRole, q *MangaList
 		return nil, err
 	}
 
-	ms, err := s.repo.ListMangas(ctx, f, p, o)
+	r, err := s.repo.ListMangas(ctx, f, p, o)
 	if err != nil {
 		return nil, err
 	}
 
-	items := make([]MangaSummaryDTO, len(ms))
-	for i, m := range ms {
-		items[i] = s.mapper.ToMangaSummaryDTO(&m)
+	items := make([]MangaSummaryDTO, len(r.Items))
+	for i := range r.Items {
+		items[i] = s.mapper.ToMangaSummaryDTO(&r.Items[i])
 	}
 
 	totalPages := (total + q.PageSize - 1) / q.PageSize

@@ -20,7 +20,7 @@ type Repository interface {
 		filter MangaFilter,
 		paging paging.Paging,
 		ordering []ordering.Ordering,
-	) ([]MangaSummary, error)
+	) (*Page[MangaSummary], error)
 
 	SaveChapter(ctx context.Context, c *model.Chapter) error
 	DeleteChapterByID(ctx context.Context, id uuid.UUID) error
@@ -32,7 +32,14 @@ type Repository interface {
 		filter ChapterFilter,
 		paging paging.Paging,
 		ordering []ordering.Ordering,
-	) ([]ChapterSummary, error)
+	) (*Page[ChapterSummary], error)
+}
+
+type Page[T any] struct {
+	Items  []T
+	Total  int
+	Limit  int
+	Offset int
 }
 
 type MangaFilter struct {

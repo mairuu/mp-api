@@ -61,10 +61,8 @@ func (r *LibraryRepository) SaveLibrary(ctx context.Context, lib *model.Library)
 		if len(toUpserts) > 0 {
 			err = tx.
 				Clauses(clause.OnConflict{
-					Columns: []clause.Column{{Name: "owner_id"}, {Name: "manga_id"}},
-					DoUpdates: clause.AssignmentColumns([]string{
-						"tags",
-					}),
+					Columns:   []clause.Column{{Name: "owner_id"}, {Name: "manga_id"}},
+					DoUpdates: clause.AssignmentColumns([]string{"tags"}),
 				}).
 				CreateInBatches(&toUpserts, 100).Error
 			if err != nil {
@@ -78,7 +76,9 @@ func (r *LibraryRepository) SaveLibrary(ctx context.Context, lib *model.Library)
 				mangaIDs = append(mangaIDs, m.MangaID)
 			}
 
-			err = tx.Where("owner_id = ? AND manga_id IN ?", lib.OwnerID, mangaIDs).Delete(&models.LibraryMangaDB{}).Error
+			err = tx.
+				Where("owner_id = ? AND manga_id IN ?", lib.OwnerID, mangaIDs).
+				Delete(&models.LibraryMangaDB{}).Error
 			if err != nil {
 				return fmt.Errorf("delete library mangas: %w", err)
 			}

@@ -114,7 +114,12 @@ func (r *MangaRepository) CountMangas(ctx context.Context, filter mangarepo.Mang
 	return int(count), nil
 }
 
-func (r *MangaRepository) ListMangas(ctx context.Context, filter mangarepo.MangaFilter, paging paging.Paging, ordering []ordering.Ordering) ([]mangarepo.MangaSummary, error) {
+func (r *MangaRepository) ListMangas(
+	ctx context.Context,
+	filter mangarepo.MangaFilter,
+	paging paging.Paging,
+	ordering []ordering.Ordering,
+) (*mangarepo.Page[mangarepo.MangaSummary], error) {
 	ms := make([]struct {
 		ID    uuid.UUID
 		Title string
@@ -164,7 +169,12 @@ func (r *MangaRepository) ListMangas(ctx context.Context, filter mangarepo.Manga
 		}
 	}
 
-	return mangas, nil
+	return &mangarepo.Page[mangarepo.MangaSummary]{
+		Items:  mangas,
+		Total:  len(mangas),
+		Limit:  paging.Limit,
+		Offset: paging.Offset,
+	}, nil
 }
 
 func (r *MangaRepository) SaveChapter(ctx context.Context, c *model.Chapter) error {
@@ -233,7 +243,12 @@ func (r *MangaRepository) CountChapters(ctx context.Context, filter mangarepo.Ch
 	return int(count), nil
 }
 
-func (r *MangaRepository) ListChapters(ctx context.Context, filter mangarepo.ChapterFilter, pagging paging.Paging, ordering []ordering.Ordering) ([]mangarepo.ChapterSummary, error) {
+func (r *MangaRepository) ListChapters(
+	ctx context.Context,
+	filter mangarepo.ChapterFilter,
+	pagging paging.Paging,
+	ordering []ordering.Ordering,
+) (*mangarepo.Page[mangarepo.ChapterSummary], error) {
 	q := r.db.WithContext(ctx).
 		Model(&models.ChapterDB{}).
 		Select("id", "manga_id", "title", "number", "volume", "created_at")
@@ -250,7 +265,12 @@ func (r *MangaRepository) ListChapters(ctx context.Context, filter mangarepo.Cha
 		chapters = []mangarepo.ChapterSummary{}
 	}
 
-	return chapters, nil
+	return &mangarepo.Page[mangarepo.ChapterSummary]{
+		Items:  chapters,
+		Total:  len(chapters),
+		Limit:  pagging.Limit,
+		Offset: pagging.Offset,
+	}, nil
 }
 
 func (r *MangaRepository) GetChapterByID(ctx context.Context, id uuid.UUID) (*model.Chapter, error) {

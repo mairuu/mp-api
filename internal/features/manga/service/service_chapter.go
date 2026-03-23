@@ -78,14 +78,14 @@ func (s *Service) ListChapters(ctx context.Context, ur *app.UserRole, q *Chapter
 		return nil, err
 	}
 
-	cs, err := s.repo.ListChapters(ctx, f, p, o)
+	r, err := s.repo.ListChapters(ctx, f, p, o)
 	if err != nil {
 		return nil, err
 	}
 
-	items := make([]ChapterSummaryDTO, len(cs))
-	for i, c := range cs {
-		items[i] = s.mapper.ToChapterSummaryDTO(&c)
+	items := make([]ChapterSummaryDTO, len(r.Items))
+	for i := range r.Items {
+		items[i] = s.mapper.ToChapterSummaryDTO(&r.Items[i])
 	}
 
 	totalPages := (total + q.PageSize - 1) / q.PageSize
