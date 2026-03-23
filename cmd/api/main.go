@@ -11,6 +11,8 @@ import (
 	buckethandler "github.com/mairuu/mp-api/internal/features/bucket/handler"
 	bucket "github.com/mairuu/mp-api/internal/features/bucket/model"
 	bucketservice "github.com/mairuu/mp-api/internal/features/bucket/service"
+	historyhandler "github.com/mairuu/mp-api/internal/features/history/handler"
+	historyservice "github.com/mairuu/mp-api/internal/features/history/service"
 	libraryhandler "github.com/mairuu/mp-api/internal/features/library/handler"
 	library "github.com/mairuu/mp-api/internal/features/library/model"
 	libraryservice "github.com/mairuu/mp-api/internal/features/library/service"
@@ -88,11 +90,13 @@ func main() {
 	userRepo := repositories.NewUserRepository(db)
 	mangaRepo := repositories.NewMangaRepository(db)
 	libraryRepo := repositories.NewLibraryRepository(db)
+	historyRepo := repositories.NewHistoryRepository(db)
 
 	bucketService := bucketservice.NewService(enforcer, temporaryBucket)
 	userService := userservice.NewService(userRepo, tokenService, enforcer)
 	mangaService := mangaservice.NewService(log, mangaRepo, enforcer, publicBucket, temporaryBucket)
 	libraryService := libraryservice.NewService(libraryRepo)
+	historyService := historyservice.NewService(log, historyRepo)
 
 	r := gin.New()
 	r.SetTrustedProxies(nil)
@@ -109,6 +113,7 @@ func main() {
 		userhandler.NewUserHandler(log, userService),
 		mangahandler.NewHandler(log, mangaService),
 		libraryhandler.NewHandler(log, libraryService),
+		historyhandler.NewHandler(log, historyService),
 	})
 	router.RegisterRoutes()
 

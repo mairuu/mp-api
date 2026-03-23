@@ -29,6 +29,7 @@ func main() {
 		&models.ChapterDB{},
 		&models.ChapterPageDB{},
 		&models.LibraryMangaDB{},
+		&models.HistoryDB{},
 	}
 	if err := db.AutoMigrate(allModels...); err != nil {
 		log.Error("failed to migrate database", "error", err)
