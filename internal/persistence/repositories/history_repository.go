@@ -44,7 +44,7 @@ func (r *HistoryRepository) SaveMany(ctx context.Context, h []model.History) err
 	err := r.db.WithContext(ctx).
 		Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "user_id"}, {Name: "chapter_id"}},
-			DoUpdates: clause.AssignmentColumns([]string{"read_at"}),
+			DoUpdates: clause.AssignmentColumns([]string{"progress", "read_at"}),
 		}).
 		Create(&dbs).Error
 	if err != nil {
@@ -95,6 +95,7 @@ recent_chapters AS (
 		c.manga_id,
 		c.id as chapter_id,
 		c.title as chapter_title,
+		h.progress,
 		h.read_at,
 		ROW_NUMBER() OVER (
 			PARTITION BY c.manga_id
@@ -110,13 +111,14 @@ best_cover AS (
 		object_name
 	FROM cover_arts
 	ORDER BY manga_id, is_primary DESC, "order" DESC
-),
+)
 SELECT 
 	m.id as manga_id,
 	m.title as manga_title,
 	bc.object_name as cover_object_name,
 	rc.chapter_id,
 	rc.chapter_title,
+	rc.progress,
 	rc.read_at
 FROM recent_chapters rc
 JOIN mangas m ON rc.manga_id = m.id

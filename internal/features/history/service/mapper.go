@@ -15,6 +15,7 @@ func (m *mapper) ToRecentReadDTO(h *repository.RecentReadItem) RecentReadDTO {
 		CoverObjectName: h.CoverObjectName,
 		ChapterID:       h.ChapterID.String(),
 		ChapterName:     h.ChapterTitle,
+		Progress:        h.Progress,
 		ReadAt:          h.ReadAt.Format(time.RFC3339),
 	}
 }

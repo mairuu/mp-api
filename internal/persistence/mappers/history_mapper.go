@@ -9,6 +9,7 @@ func ToHistoryDB(m *model.History) models.HistoryDB {
 	return models.HistoryDB{
 		UserID:    m.UserID,
 		ChapterID: m.ChapterID,
+		Progress:  m.Progress,
 		ReadAt:    m.ReadAt,
 	}
 }

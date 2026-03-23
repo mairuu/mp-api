@@ -6,6 +6,7 @@ type RecentReadDTO struct {
 	CoverObjectName *string `json:"cover_object_name"`
 	ChapterID       string  `json:"chapter_id"`
 	ChapterName     string  `json:"chapter_name"`
+	Progress        float32 `json:"progress"`
 	ReadAt          string  `json:"read_at"`
 }
 
