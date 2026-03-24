@@ -91,6 +91,7 @@ func (r *LibraryRepository) SaveLibrary(ctx context.Context, lib *model.Library)
 func (r *LibraryRepository) GetLibrary(ctx context.Context, ownerID uuid.UUID) (*model.Library, error) {
 	dbs, err := gorm.G[*models.LibraryMangaDB](r.db).
 		Where("owner_id = ?", ownerID).
+		Order("added_at DESC").
 		Find(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get library: %w", err)
@@ -110,6 +111,7 @@ func (r *LibraryRepository) GetLibrary(ctx context.Context, ownerID uuid.UUID) (
 func (r *LibraryRepository) GetLibrarySummary(ctx context.Context, ownerID uuid.UUID) (*libraryrepo.LibrarySummary, error) {
 	count, err := gorm.G[*models.LibraryMangaDB](r.db).
 		Where("owner_id = ?", ownerID).
+		Order("added_at DESC").
 		Count(ctx, "*")
 	if err != nil {
 		return nil, fmt.Errorf("get library summary: %w", err)

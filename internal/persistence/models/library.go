@@ -8,12 +8,12 @@ import (
 )
 
 type LibraryMangaDB struct {
-	OwnerID uuid.UUID      `gorm:"primaryKey;type:uuid"`
+	OwnerID uuid.UUID      `gorm:"primaryKey;type:uuid;index:idx_owner_added"`
 	Owner   *UserDB        `gorm:"foreignKey:OwnerID;constraint:OnDelete:CASCADE;"`
 	MangaID uuid.UUID      `gorm:"primaryKey;type:uuid"`
 	Manga   *MangaDB       `gorm:"foreignKey:MangaID;constraint:OnDelete:CASCADE;"`
 	Tags    pq.StringArray `gorm:"type:text[];default:'{}'"`
-	AddedAt time.Time
+	AddedAt time.Time      `gorm:"index:idx_owner_added,sort:desc"`
 }
 
 func (LibraryMangaDB) TableName() string {

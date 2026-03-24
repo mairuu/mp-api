@@ -24,12 +24,12 @@ func (m *MangaDB) TableName() string {
 }
 
 type CoverArtDB struct {
-	MangaID     uuid.UUID        `gorm:"type:uuid;primaryKey"`
+	MangaID     uuid.UUID        `gorm:"type:uuid;primaryKey;index:idx_manga_primary_order;index:idx_manga_volume"`
 	Manga       *MangaDB         `gorm:"foreignKey:MangaID;constraint:OnDelete:CASCADE;"`
-	Order       int              `gorm:"type:int;primaryKey"`
+	Order       int              `gorm:"type:int;primaryKey;index:idx_manga_primary_order,sort:desc"`
 	ObjectName  string           `gorm:"type:varchar(255);not null"`
-	IsPrimary   bool             `gorm:"type:boolean;not null;default:false"`
-	Volume      *decimal.Decimal `gorm:"type:decimal(10,4)"`
+	IsPrimary   bool             `gorm:"type:boolean;not null;default:false;index:idx_manga_primary_order,sort:desc"`
+	Volume      *decimal.Decimal `gorm:"type:decimal(10,4);index:idx_manga_volume"`
 	Description *string          `gorm:"type:text"`
 }
 
@@ -37,7 +37,6 @@ func (c *CoverArtDB) TableName() string {
 	return "cover_arts"
 }
 
-// ChapterDB represents the chapters table in the database
 type ChapterDB struct {
 	ID        uuid.UUID        `gorm:"type:uuid;primaryKey"`
 	MangaID   uuid.UUID        `gorm:"type:uuid;not null;uniqueIndex:idx_manga_number"`
@@ -47,7 +46,7 @@ type ChapterDB struct {
 	Number    decimal.Decimal  `gorm:"type:decimal(10, 4);not null;uniqueIndex:idx_manga_number"`
 	State     string           `gorm:"type:varchar(10);not null;index:idx_state"`
 	Pages     []ChapterPageDB  `gorm:"foreignKey:ChapterID;constraint:OnDelete:CASCADE;"`
-	CreatedAt time.Time
+	CreatedAt time.Time        `gorm:"index:idx_created_at"`
 	UpdatedAt time.Time
 }
 
@@ -55,7 +54,6 @@ func (c *ChapterDB) TableName() string {
 	return "chapters"
 }
 
-// ChapterPageDB represents the chapter_pages table in the database
 type ChapterPageDB struct {
 	ChapterID  uuid.UUID `gorm:"type:uuid;primaryKey"`
 	Number     int       `gorm:"type:int;primaryKey"`
