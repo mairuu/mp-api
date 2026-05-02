@@ -11,10 +11,11 @@ type mapper struct{}
 func (m *mapper) ToRecentReadDTO(h *repository.RecentReadItem) RecentReadDTO {
 	return RecentReadDTO{
 		MangaID:         h.MangaID.String(),
-		MangaName:       h.MangaTitle,
+		MangaTitle:      h.MangaTitle,
 		CoverObjectName: h.CoverObjectName,
 		ChapterID:       h.ChapterID.String(),
-		ChapterName:     h.ChapterTitle,
+		ChapterTitle:    h.ChapterTitle,
+		ChapterNumber:   h.ChapterNumber.String(),
 		Progress:        h.Progress,
 		ReadAt:          h.ReadAt.Format(time.RFC3339),
 	}

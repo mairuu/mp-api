@@ -2,10 +2,11 @@ package service
 
 type RecentReadDTO struct {
 	MangaID         string  `json:"manga_id"`
-	MangaName       string  `json:"manga_name"`
+	MangaTitle      string  `json:"manga_title"`
 	CoverObjectName *string `json:"cover_object_name"`
 	ChapterID       string  `json:"chapter_id"`
-	ChapterName     string  `json:"chapter_name"`
+	ChapterTitle    string  `json:"chapter_title"`
+	ChapterNumber   string  `json:"chapter_number"`
 	Progress        float32 `json:"progress"`
 	ReadAt          string  `json:"read_at"`
 }
@@ -18,7 +19,7 @@ type MangaReadDTO struct {
 
 type ChapterProgressDTO struct {
 	ChapterID string  `json:"id" binding:"required,uuid"`
-	Progress  float32 `json:"progress" binding:"required,gte=0,lte=1"`
+	Progress  float32 `json:"progress" binding:"gte=0,lte=1"`
 }
 
 type MarkChaptersAsReadDTO struct {

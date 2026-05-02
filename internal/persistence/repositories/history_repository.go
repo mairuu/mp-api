@@ -93,8 +93,9 @@ WITH
 recent_chapters AS (
 	SELECT 
 		c.manga_id,
-		c.id as chapter_id,
-		c.title as chapter_title,
+		c.id AS chapter_id,
+		c.title AS chapter_title,
+		c.number AS chapter_number,
 		h.progress,
 		h.read_at,
 		ROW_NUMBER() OVER (
@@ -113,11 +114,12 @@ best_cover AS (
 	ORDER BY manga_id, is_primary DESC, "order" DESC
 )
 SELECT 
-	m.id as manga_id,
-	m.title as manga_title,
-	bc.object_name as cover_object_name,
+	m.id AS manga_id,
+	m.title AS manga_title,
+	bc.object_name AS cover_object_name,
 	rc.chapter_id,
 	rc.chapter_title,
+	rc.chapter_number,
 	rc.progress,
 	rc.read_at
 FROM recent_chapters rc

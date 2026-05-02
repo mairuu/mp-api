@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 type RecentReadItem struct {
@@ -12,6 +13,7 @@ type RecentReadItem struct {
 	CoverObjectName *string
 	ChapterID       uuid.UUID
 	ChapterTitle    string
+	ChapterNumber   decimal.Decimal
 	Progress        float32
 	ReadAt          time.Time
 }
